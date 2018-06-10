@@ -15,6 +15,8 @@ const (
 )
 
 const (
+	// Version is the version number of Radix Canary Golang
+	Version = "0.1.0"
 	// ListenPort Default port for server to listen on unless specified in environment variable
 	ListenPort = "5000"
 )
@@ -84,25 +86,36 @@ func Health(w http.ResponseWriter, r *http.Request) {
 func Metrics(w http.ResponseWriter, r *http.Request) {
 	requestCount++
 
-	appMetrics := map[string]interface{}{
-		"Requests": requestCount,
-		"Errors":   errorCount,
-	}
+	hostname, _ := os.Hostname()
 
-	metricsJSON, err := json.Marshal(appMetrics)
+	tagsJSON, err := json.Marshal(map[string]interface{}{
+		"host":      hostname,
+		"pid":       os.Getpid(),
+		"component": "radix-canary-go",
+		"version":   Version,
+	})
+
 	if err != nil {
 		errorJSON, err := json.Marshal(map[string]interface{}{"Error": err})
 
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "%s", errorJSON)
 
-		fmt.Fprintf(os.Stderr, "Could not encode JSON: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Could not encode tags JSON: %s\n", err)
 
 		errorCount++
 		return
 	}
 
-	fmt.Fprintf(w, "%s", metricsJSON)
+	appMetrics := map[string]interface{}{
+		"requests_total": requestCount,
+		"errors_total":   errorCount,
+	}
+
+	for metric, value := range appMetrics {
+		fmt.Fprintf(w, "%s%s %v\n", metric, tagsJSON, value)
+	}
+
 }
 
 // Error handler returns an error

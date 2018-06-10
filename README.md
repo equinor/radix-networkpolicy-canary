@@ -36,7 +36,7 @@ Run image:
 
 The /health endpoint is a common pattern and is used by load balancers and service discovery to determine if a node should receive requests. Read more on [microservices.io](http://microservices.io/patterns/observability/health-check-api.html)
 
-The /metrics endpoint is also a common pattern and is used by scrapers, such as Prometheus, to gather application metrics. PS: Right now this returns JSON, which is NOT the format Prometheus expects.
+The /metrics endpoint is also a common pattern and is used by scrapers, such as Prometheus, to gather application metrics. This application spits out a very basic Prometheus-compatible counter. For production you should use the official Prometheus client libraries to export metrics: https://godoc.org/github.com/prometheus/client_golang/prometheus . Also look for the Radix Monitoring Manual on general information on monitoring and instrumentation.
 
 The /error endpoint is just an example on how to return a different HTTP status code and some payload.
 
