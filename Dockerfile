@@ -2,6 +2,9 @@
 # docker build --tag radix-canary-golang:latest -f Dockerfile .
 # docker run -p 5000:5000 -e "LISTEN_PORT=5000" radix-canary-golang:latest
 
+# docker tag radix-canary-golang:latest radixdev.azurecr.io/radix-canary-golang:latest
+# docker push radixdev.azurecr.io/radix-canary-golang:latest
+
 # Application build stage
 FROM golang:1.10-alpine3.7 as build
 
