@@ -34,6 +34,7 @@ func main() {
 	fmt.Printf("Starting radix-canary-golang\n")
 
 	// Register handler functions to URL paths
+	http.HandleFunc("/", Index)
 	http.HandleFunc("/health", Health)
 	http.HandleFunc("/metrics", Metrics)
 	http.HandleFunc("/error", Error)
@@ -50,6 +51,16 @@ func main() {
 
 	// Start server. Exit fatally on error
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+}
+
+// Index handler returns a simple front page
+func Index(w http.ResponseWriter, r *http.Request) {
+	// Increase request count
+	requestCount++
+
+	indexHTML := "<h1>Radix Canary App</h1>"
+
+	fmt.Fprintf(w, "%s", indexHTML)
 }
 
 // Health handler returns a simple status code indicating system health

@@ -26,6 +26,10 @@ Run image:
 
   `docker run -p 5000:5000 -e "LISTEN_PORT=5000" radix-canary-golang:latest`
 
+## Deploy to Kubernetes
+
+  `kubectl create -f deployment-service.yaml`
+
 ## Features
 
 - Server port configured by environment variables
