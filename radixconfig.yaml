@@ -1,0 +1,22 @@
+apiVersion: radix.equinor.com/v1
+kind: RadixApplication
+metadata:
+  name: radixcanary
+spec:
+  environments:
+    - name: dev
+      authorization:
+      - role: RadixAppAdmin
+        groups:
+        - "fg_radix_platform_development"
+    - name: prod
+      authorization:
+      - role: RadixAppAdmin
+        groups:
+        - "fg_radix_platform_development"
+  components:
+    - name: frontend
+      src: "."
+      ports:
+       - 5000
+      public: true
