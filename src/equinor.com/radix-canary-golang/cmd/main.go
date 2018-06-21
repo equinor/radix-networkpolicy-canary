@@ -58,7 +58,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	// Increase request count
 	requestCount++
 
-	indexHTML := "<h1>Radix Canary App</h1>"
+	indexHTML := "<h1>Radix Canary App v1</h1>"
 
 	fmt.Fprintf(w, "%s", indexHTML)
 }
