@@ -38,6 +38,7 @@ func main() {
 	http.HandleFunc("/health", Health)
 	http.HandleFunc("/metrics", Metrics)
 	http.HandleFunc("/error", Error)
+	http.HandleFunc("/echo", Echo)
 
 	// See if listen_port environment variable is set
 	port := os.Getenv("LISTEN_PORT")
@@ -146,4 +147,28 @@ func Error(w http.ResponseWriter, r *http.Request) {
 		errorCount++
 		return
 	}
+}
+
+// Echo handler returns the incomming request with headers
+func Echo(w http.ResponseWriter, r *http.Request) {
+	requestCount++
+
+	fmt.Printf("%+v", r)
+
+	requestJSON, err := json.Marshal(r)
+
+	if err != nil {
+		errorJSON, _ := json.Marshal(map[string]interface{}{"Error": err})
+
+		fmt.Fprintf(os.Stderr, "Could not encode request JSON: %v\n", err)
+
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "%s", errorJSON)
+
+		errorCount++
+		return
+	}
+
+	// Write JSON to client
+	fmt.Fprintf(w, "%s", requestJSON)
 }
