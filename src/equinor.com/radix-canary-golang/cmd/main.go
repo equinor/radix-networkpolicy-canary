@@ -16,7 +16,7 @@ const (
 
 const (
 	// Version is the version number of Radix Canary Golang
-	Version = "0.1.0"
+	Version = "0.1.1"
 	// ListenPort Default port for server to listen on unless specified in environment variable
 	ListenPort = "5000"
 )
@@ -59,9 +59,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	// Increase request count
 	requestCount++
 
-	indexHTML := "<h1>Radix Canary App v1</h1>"
-
-	fmt.Fprintf(w, "%s", indexHTML)
+	fmt.Fprintf(w, "<h1>Radix Canary App v %s</h1>", Version)
 }
 
 // Health handler returns a simple status code indicating system health
@@ -155,7 +153,16 @@ func Echo(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("%+v", r)
 
-	requestJSON, err := json.Marshal(r)
+	request := map[string]interface{}{
+		"headers":    r.Header,
+		"method":     r.Method,
+		"url":        r.URL,
+		"requesturi": r.RequestURI,
+		"remoteaddr": r.RemoteAddr,
+		"body":       r.Body,
+	}
+
+	requestJSON, err := json.Marshal(request)
 
 	if err != nil {
 		errorJSON, _ := json.Marshal(map[string]interface{}{"Error": err})
