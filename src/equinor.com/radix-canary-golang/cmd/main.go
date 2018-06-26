@@ -16,7 +16,7 @@ const (
 
 const (
 	// Version is the version number of Radix Canary Golang
-	Version = "0.1.0"
+	Version = "0.1.1"
 	// ListenPort Default port for server to listen on unless specified in environment variable
 	ListenPort = "5000"
 )
@@ -38,6 +38,7 @@ func main() {
 	http.HandleFunc("/health", Health)
 	http.HandleFunc("/metrics", Metrics)
 	http.HandleFunc("/error", Error)
+	http.HandleFunc("/echo", Echo)
 
 	// See if listen_port environment variable is set
 	port := os.Getenv("LISTEN_PORT")
@@ -58,9 +59,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	// Increase request count
 	requestCount++
 
-	indexHTML := "<h1>Radix Canary App v1</h1>"
-
-	fmt.Fprintf(w, "%s", indexHTML)
+	fmt.Fprintf(w, "<h1>Radix Canary App v %s</h1>", Version)
 }
 
 // Health handler returns a simple status code indicating system health
@@ -146,4 +145,37 @@ func Error(w http.ResponseWriter, r *http.Request) {
 		errorCount++
 		return
 	}
+}
+
+// Echo handler returns the incomming request with headers
+func Echo(w http.ResponseWriter, r *http.Request) {
+	requestCount++
+
+	fmt.Printf("%+v", r)
+
+	request := map[string]interface{}{
+		"headers":    r.Header,
+		"method":     r.Method,
+		"url":        r.URL,
+		"requesturi": r.RequestURI,
+		"remoteaddr": r.RemoteAddr,
+		"body":       r.Body,
+	}
+
+	requestJSON, err := json.Marshal(request)
+
+	if err != nil {
+		errorJSON, _ := json.Marshal(map[string]interface{}{"Error": err})
+
+		fmt.Fprintf(os.Stderr, "Could not encode request JSON: %v\n", err)
+
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "%s", errorJSON)
+
+		errorCount++
+		return
+	}
+
+	// Write JSON to client
+	fmt.Fprintf(w, "%s", requestJSON)
 }
