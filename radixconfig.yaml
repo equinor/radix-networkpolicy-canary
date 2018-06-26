@@ -15,7 +15,7 @@ spec:
         groups:
         - "fg_radix_platform_development"
   components:
-    - name: frontend
+    - name: www
       src: "."
       ports:
        - 5000
