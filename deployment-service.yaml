@@ -40,3 +40,23 @@ spec:
     name: http
   selector:
     app: radix-canary-golang
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: radix-canary-golang
+  labels:
+    app: radix-canary-golang
+spec:
+  endpoints:
+  - interval: 30s
+    port: http
+  jobLabel: radix-canary-golang
+  namespaceSelector:
+    matchNames:
+    - any
+  selector:
+    matchLabels:
+      app: radix-canary-golang
