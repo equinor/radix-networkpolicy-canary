@@ -26,9 +26,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  annotations: 
-    external-dns.alpha.kubernetes.io/hostname: "example.dev.radix.equinor.com."
-    external-dns.alpha.kubernetes.io/ttl: "10"
   name: radix-canary-golang
   labels:
     app: radix-canary-golang
@@ -43,20 +40,42 @@ spec:
 
 ---
 
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  name: radix-canary-ingress
+spec:
+  rules:
+    - host: canary.playground-f-prometheus-7.dev.radix.equinor.com
+      http:
+        paths:
+          - backend:
+              serviceName: radix-canary-golang
+              servicePort: 80
+            path: /
+#  tls:
+#      - hosts:
+#          - canary.playground-f-prometheus-7.dev.radix.equinor.com
+#        secretName: domain-ssl-cert-key
+
+---
+
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: radix-canary-golang
   labels:
-    app: radix-canary-golang
+    prometheus: prometheus
 spec:
   endpoints:
-  - interval: 30s
+  - interval: 5s
     port: http
   jobLabel: radix-canary-golang
   namespaceSelector:
     matchNames:
-    - any
+    - default
   selector:
     matchLabels:
       app: radix-canary-golang

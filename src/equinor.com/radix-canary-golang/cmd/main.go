@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
 
 const (
@@ -16,7 +17,7 @@ const (
 
 const (
 	// Version is the version number of Radix Canary Golang
-	Version = "0.1.1"
+	Version = "0.1.6"
 	// ListenPort Default port for server to listen on unless specified in environment variable
 	ListenPort = "5000"
 )
@@ -98,24 +99,21 @@ func Metrics(w http.ResponseWriter, r *http.Request) {
 
 	hostname, _ := os.Hostname()
 
-	tagsJSON, err := json.Marshal(map[string]interface{}{
+	// Valid label names: [a-zA-Z_][a-zA-Z0-9_]*
+	// https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels
+	labels := map[string]interface{}{
 		"host":      hostname,
 		"pid":       os.Getpid(),
 		"component": "radix-canary-go",
 		"version":   Version,
-	})
-
-	if err != nil {
-		errorJSON, err := json.Marshal(map[string]interface{}{"Error": err})
-
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "%s", errorJSON)
-
-		fmt.Fprintf(os.Stderr, "Could not encode tags JSON: %s\n", err)
-
-		errorCount++
-		return
 	}
+
+	var labelsStr string
+
+	for labelName, labelValue := range labels {
+		labelsStr += fmt.Sprintf(`%s="%v",`, labelName, labelValue)
+	}
+	labelsStr = strings.Trim(labelsStr, ",")
 
 	appMetrics := map[string]interface{}{
 		"requests_total": requestCount,
@@ -123,7 +121,7 @@ func Metrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for metric, value := range appMetrics {
-		fmt.Fprintf(w, "%s%s %v\n", metric, tagsJSON, value)
+		fmt.Fprintf(w, "%s{%s} %v\n", metric, labelsStr, value)
 	}
 
 }
