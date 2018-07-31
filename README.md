@@ -48,6 +48,10 @@ The /error endpoint is just an example on how to return a different HTTP status 
 
 The /echo endpoint returns the incomming request as seen from the server. This is useful since there might be intermediate proxies that modifies a request before arriving at a server. Using this we can verify that a request arrives as expected.
 
+## Load testing
+
+k6 run -< k6_test_canary.js
+
 ## Further reading
 
 [How I write Go HTTP services after seven years](https://medium.com/statuscode/how-i-write-go-http-services-after-seven-years-37c208122831) is a good source of inspiration for patterns on building larger Golang web services.

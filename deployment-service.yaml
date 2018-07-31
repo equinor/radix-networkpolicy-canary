@@ -48,7 +48,7 @@ metadata:
   name: radix-canary-ingress
 spec:
   rules:
-    - host: canary.playground-f-prometheus-7.dev.radix.equinor.com
+    - host: canary.playground-b-mon2-stian5.dev.radix.equinor.com
       http:
         paths:
           - backend:
@@ -57,7 +57,7 @@ spec:
             path: /
 #  tls:
 #      - hosts:
-#          - canary.playground-f-prometheus-7.dev.radix.equinor.com
+#          - canary.playground-debug-helm-bugs-st4.dev.radix.equinor.com
 #        secretName: domain-ssl-cert-key
 
 ---
@@ -67,7 +67,7 @@ kind: ServiceMonitor
 metadata:
   name: radix-canary-golang
   labels:
-    prometheus: prometheus
+    prometheus: kube-prometheus
 spec:
   endpoints:
   - interval: 5s

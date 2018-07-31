@@ -9,8 +9,8 @@ export let options = {
 };
 
 export default function () {
-    http.get("http://canary.playground-f-prometheus-7.dev.radix.equinor.com");
-    http.get("http://canary.playground-f-prometheus-7.dev.radix.equinor.com/status");
-    http.get("http://canary.playground-f-prometheus-7.dev.radix.equinor.com/error");
+    http.get("http://canary.playground-debug-helm-bugs-st4.dev.radix.equinor.com");
+    http.get("http://canary.playground-debug-helm-bugs-st4.dev.radix.equinor.com/status");
+    http.get("http://canary.playground-debug-helm-bugs-st4.dev.radix.equinor.com/error");
     sleep(1);
 };
