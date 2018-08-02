@@ -10,6 +10,9 @@
 # docker tag radix-canary-golang:latest stianovrevage/radix-canary-golang:latest
 # docker push stianovrevage/radix-canary-golang:latest
 
+# docker tag radix-canary-golang:latest stianovrevage/radix-canary-golang:0.1.7
+# docker push stianovrevage/radix-canary-golang:0.1.7
+
 # Application build stage
 FROM golang:1.10-alpine3.7 as build
 

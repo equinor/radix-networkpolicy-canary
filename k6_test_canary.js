@@ -1,16 +1,27 @@
+/*
+
+k6 run -< k6_test_canary.js
+
+*/
+
 import http from "k6/http";
 import {
     sleep
 } from "k6";
 
 export let options = {
-    vus: 300,
+    vus: 60,
     duration: "1800s"
 };
 
 export default function () {
-    http.get("http://canary.playground-debug-helm-bugs-st4.dev.radix.equinor.com");
-    http.get("http://canary.playground-debug-helm-bugs-st4.dev.radix.equinor.com/status");
-    http.get("http://canary.playground-debug-helm-bugs-st4.dev.radix.equinor.com/error");
-    sleep(1);
+
+    let appName = "canary"
+    let clusterName = "playground-v-1-1-0.dev.radix.equinor.com"
+
+    http.get("http://" + appName + "." + clusterName + "/status");
+    http.get("http://" + appName + "." + clusterName + "/error");
+    http.get("http://" + appName + "." + clusterName + "/calculatehashesbcrypt");
+    http.get("http://" + appName + "." + clusterName + "/calculatehashesscrypt");
+    sleep(2);
 };
