@@ -17,7 +17,7 @@ export let options = {
 export default function () {
 
     let appName = "canary"
-    let clusterName = "playground-v-1-1-0.dev.radix.equinor.com"
+    let clusterName = "playground-v1-1-1-b.dev.radix.equinor.com"
 
     http.get("http://" + appName + "." + clusterName + "/status");
     http.get("http://" + appName + "." + clusterName + "/error");
