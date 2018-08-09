@@ -10,7 +10,7 @@ import {
 } from "k6";
 
 export let options = {
-    vus: 60,
+    vus: 10,
     duration: "1800s"
 };
 

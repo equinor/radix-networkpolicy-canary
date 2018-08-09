@@ -32,6 +32,10 @@ Run image:
 
   `kubectl create -f deployment-service.yaml`
 
+## Register on Radix Platform
+
+  `kubectl create -f radixregistration.yaml`
+
 ## Features
 
 - Server port configured by environment variables
