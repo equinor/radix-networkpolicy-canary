@@ -46,7 +46,7 @@ Run image:
 - /error - increases error count and returns HTTP 500 with an error
 - /echo - returns the incomming request data including headers
 - /calculatehashesbcrypt - CPU intensive task that generate and compare Bcrypt hashes
-- /calculatehashesscrypt - CPU and memory intensive task that generates Scrypt derived keys
+- /calculatehashesscrypt - CPU and memory intensive task that generates Scrypt derived keys 
 
 The /health endpoint is a common pattern and is used by load balancers and service discovery to determine if a node should receive requests. Read more on [microservices.io](http://microservices.io/patterns/observability/health-check-api.html)
 
