@@ -16,12 +16,12 @@ export let options = {
 
 export default function () {
 
-    let appName = "canary"
-    let clusterName = "playground-v1-1-1-b.dev.radix.equinor.com"
+    let appName = "www-radix-canary-golang-prod"
+    let clusterName = "playground-master-44.dev.radix.equinor.com"
 
-    http.get("http://" + appName + "." + clusterName + "/status");
-    http.get("http://" + appName + "." + clusterName + "/error");
-    http.get("http://" + appName + "." + clusterName + "/calculatehashesbcrypt");
-    http.get("http://" + appName + "." + clusterName + "/calculatehashesscrypt");
+    http.get("https://" + appName + "." + clusterName + "/status");
+    http.get("https://" + appName + "." + clusterName + "/error");
+    http.get("https://" + appName + "." + clusterName + "/calculatehashesbcrypt");
+    http.get("https://" + appName + "." + clusterName + "/calculatehashesscrypt");
     sleep(2);
 };
