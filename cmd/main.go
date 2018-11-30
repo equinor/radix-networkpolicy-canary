@@ -13,6 +13,8 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/scrypt"
+
+	"github.com/gorilla/handlers"
 )
 
 const (
@@ -22,7 +24,7 @@ const (
 
 const (
 	// Version is the version number of Radix Canary Golang
-	Version = "0.1.14"
+	Version = "0.1.15"
 	// ListenPort Default port for server to listen on unless specified in environment variable
 	ListenPort = "5000"
 )
@@ -59,7 +61,7 @@ func main() {
 	fmt.Printf("Starting server on port %v\n", port)
 
 	// Start server. Exit fatally on error
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(http.ListenAndServe(":"+port, handlers.CompressHandler(handlers.LoggingHandler(os.Stdout, http.DefaultServeMux))))
 }
 
 // Index handler returns a simple front page
