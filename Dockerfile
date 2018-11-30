@@ -14,25 +14,25 @@
 # docker push stianovrevage/radix-canary-golang:0.1.7
 
 # Application build stage
-FROM golang:1.10-alpine3.7 as build
+FROM golang:1.10-alpine3.8 as build
 
 ENV GOPATH /go
 
-COPY . /go/
+COPY . /go/src/github.com/statoil/radix-canary-golang/
 
-WORKDIR /go/src/equinor.com/radix-canary-golang/cmd/
+WORKDIR /go/src/github.com/statoil/radix-canary-golang/
 
 RUN apk add --no-cache git
 RUN go get -t -v ./... # go get -d -v
-RUN go build -v main.go
+RUN go build -v cmd/main.go
 
 # Application run stage
-FROM alpine:3.7
+FROM alpine:3.8
 
 # Add bash if you need an interactive shell in the container, adds ~4MB to final image
 # RUN apk add --no-cache bash
 
-COPY --from=build /go/src/equinor.com/radix-canary-golang/cmd/main /app/radix-canary-golang
+COPY --from=build /go/src/github.com/statoil/radix-canary-golang/main /app/radix-canary-golang
 
 EXPOSE 5000
 
