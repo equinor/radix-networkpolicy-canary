@@ -7,17 +7,9 @@ spec:
     - name: dev
       build:
         from: master
-      authorization:
-      - role: RadixAppAdmin
-        groups:
-        - "fg_radix_platform_development"
     - name: prod
       build:
-        from: master
-      authorization:
-      - role: RadixAppAdmin
-        groups:
-        - "fg_radix_platform_development"
+        from: release
   components:
     - name: www
       src: "."
