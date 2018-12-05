@@ -24,9 +24,11 @@ const (
 
 const (
 	// Version is the version number of Radix Canary Golang
-	Version = "0.1.15"
+	Version = "0.1.16"
 	// ListenPort Default port for server to listen on unless specified in environment variable
 	ListenPort = "5000"
+	// sCryptCost is the cost parameter to scrypt. Must be a power of 2. If set to high the application will get OOM killed.
+	sCryptCost = 2
 )
 
 // HealthStatus defines various fields we might include in our health status
@@ -228,7 +230,7 @@ func CalculateHashesScrypt(w http.ResponseWriter, r *http.Request) {
 
 	salt := []byte("kjefn2k3bfje")
 
-	dk, err := scrypt.Key(password1, salt, 262144, 8, 1, 32) // password, salt, cost-parameter, r, p, key length
+	dk, err := scrypt.Key(password1, salt, 262144, sCryptCost, 1, 32) // password, salt, cost-parameter, r, p, key length
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -237,7 +239,7 @@ func CalculateHashesScrypt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dkVerify, err := scrypt.Key(password2, salt, 262144, 8, 1, 32) // password, salt, cost-parameter, r, p, key length
+	dkVerify, err := scrypt.Key(password2, salt, 262144, sCryptCost, 1, 32) // password, salt, cost-parameter, r, p, key length
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

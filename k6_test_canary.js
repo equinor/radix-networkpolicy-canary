@@ -10,18 +10,18 @@ import {
 } from "k6";
 
 export let options = {
-    vus: 10,
+    vus: 1,
     duration: "1800s"
 };
 
 export default function () {
 
-    let appName = "www-radix-canary-golang-prod"
-    let clusterName = "playground-master-44.dev.radix.equinor.com"
+    let appName = "www-radix-canary-golang-dev"
+    let clusterName = "dev.dev.radix.equinor.com"
 
     http.get("https://" + appName + "." + clusterName + "/status");
     http.get("https://" + appName + "." + clusterName + "/error");
-    http.get("https://" + appName + "." + clusterName + "/calculatehashesbcrypt");
-    http.get("https://" + appName + "." + clusterName + "/calculatehashesscrypt");
+    //http.get("https://" + appName + "." + clusterName + "/calculatehashesbcrypt"); // CPU intensive
+    http.get("https://" + appName + "." + clusterName + "/calculatehashesscrypt"); // Memory intensive
     sleep(2);
 };
