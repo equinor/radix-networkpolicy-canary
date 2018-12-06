@@ -10,18 +10,32 @@ import {
 } from "k6";
 
 export let options = {
-    vus: 1,
+    vus: 2,
     duration: "1800s"
 };
 
 export default function () {
 
-    let appName = "www-radix-canary-golang-dev"
-    let clusterName = "dev.dev.radix.equinor.com"
+    const appName = "www-radix-canary-golang-dev"
+    const clusterName = "dev.dev.radix.equinor.com"
+
+    const errorProbability = 0.2
+    const cpuLoadProbability = 0.2
+    const memLoadProbablity = 0.01
 
     http.get("https://" + appName + "." + clusterName + "/status");
-    http.get("https://" + appName + "." + clusterName + "/error");
-    //http.get("https://" + appName + "." + clusterName + "/calculatehashesbcrypt"); // CPU intensive
-    http.get("https://" + appName + "." + clusterName + "/calculatehashesscrypt"); // Memory intensive
+    
+    if (Math.random() < errorProbability) {
+        http.get("https://" + appName + "." + clusterName + "/error");
+    }
+
+    if (Math.random() < cpuLoadProbability) {
+        http.get("https://" + appName + "." + clusterName + "/calculatehashesbcrypt"); // CPU intensive
+    }
+    
+    if (Math.random() < memLoadProbablity) {
+        http.get("https://" + appName + "." + clusterName + "/calculatehashesscrypt"); // Memory intensive
+    }
+    
     sleep(2);
 };
