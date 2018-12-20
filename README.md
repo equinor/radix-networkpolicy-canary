@@ -65,3 +65,4 @@ k6 run -< k6_test_canary.js
 ## Further reading
 
 [How I write Go HTTP services after seven years](https://medium.com/statuscode/how-i-write-go-http-services-after-seven-years-37c208122831) is a good source of inspiration for patterns on building larger Golang web services.. 
+
