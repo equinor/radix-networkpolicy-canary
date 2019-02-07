@@ -10,7 +10,6 @@ To have a simple example application that can be used:
 - __Bonus__ Demonstrate some best practices of an application that is to be deployed on the Radix platform
 - __Bonus__ Generate CPU and memory load on the Radix platform
 
-
 ## Inspiration, models, mental frameworks
 
 As with any new application we try to follow the general tenants of the 12FA - [The Twelve-Factor App](https://12factor.net/)
