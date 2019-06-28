@@ -2,6 +2,7 @@
  
 ## Purpose
 
+
 To have a simple example application that can be used:
 
 - **Primary** As an endpoint for continous monitoring to establish stability and performance baselines and Radix platform SLA measurements
