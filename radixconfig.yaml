@@ -13,9 +13,8 @@ spec:
   components:
     - name: www
       src: "."
-      public: true
       monitoring: true
       ports:
         - name: http
           port: 5000
-
+      publicPort: http
