@@ -2,6 +2,7 @@
  
 ## Purpose
 
+
 To have a simple example application that can be used:
 
 - **Primary** As an endpoint for continous monitoring to establish stability and performance baselines and Radix platform SLA measurements
@@ -9,7 +10,6 @@ To have a simple example application that can be used:
 - **Secondary** To verify that HTTP requests sent through Kubernetes ingresses and proxies arrive as expected
 - __Bonus__ Demonstrate some best practices of an application that is to be deployed on the Radix platform
 - __Bonus__ Generate CPU and memory load on the Radix platform
-
 
 ## Inspiration, models, mental frameworks
 
