@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"math"
 
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/scrypt"
@@ -24,7 +25,7 @@ const (
 
 const (
 	// Version is the version number of Radix Canary Golang
-	Version = "0.1.16"
+	Version = "0.1.17"
 	// ListenPort Default port for server to listen on unless specified in environment variable
 	ListenPort = "5000"
 	// sCryptCost is the cost parameter to scrypt. Must be a power of 2. If set to high the application will get OOM killed.
@@ -39,6 +40,7 @@ type HealthStatus struct {
 // Simple counters for application metrics
 var requestCount int64
 var errorCount int64
+var sineWaveIterations float64
 
 func main() {
 	fmt.Printf("Starting radix-canary-golang version %s\n", Version)
@@ -108,6 +110,10 @@ func Health(w http.ResponseWriter, r *http.Request) {
 func Metrics(w http.ResponseWriter, r *http.Request) {
 	requestCount++
 
+	// Generate values across a sine wave every time metrics are pulled
+	sineWaveIterations += 1
+	sineWaveValue :=  math.Sin(sineWaveIterations * 0.001) + 1
+
 	hostname, _ := os.Hostname()
 
 	// Valid label names: [a-zA-Z_][a-zA-Z0-9_]*
@@ -129,6 +135,7 @@ func Metrics(w http.ResponseWriter, r *http.Request) {
 	appMetrics := map[string]interface{}{
 		"requests_total": requestCount,
 		"errors_total":   errorCount,
+		"sine_wave":   sineWaveValue,
 	}
 
 	for metric, value := range appMetrics {
