@@ -112,7 +112,7 @@ func Metrics(w http.ResponseWriter, r *http.Request) {
 
 	// Generate values across a sine wave every time metrics are pulled
 	sineWaveIterations += 1
-	sineWaveValue :=  math.Sin(sineWaveIterations * 0.001) + 1
+	sineWaveValue :=  math.Sin(sineWaveIterations * 0.01) + 1
 
 	hostname, _ := os.Hostname()
 
