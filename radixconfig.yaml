@@ -18,3 +18,20 @@ spec:
         - name: http
           port: 5000
       publicPort: http
+      environmentConfig:
+        - environment: dev
+          resources:
+            requests:
+              memory: "20M"
+              cpu: "100m"
+            limits:
+              memory: "20M"
+              cpu: "10m"
+        - environment: prod
+          resources:
+            requests:
+              memory: "20M"
+              cpu: "100m"
+            limits:
+              memory: "20M"
+              cpu: "10m"
