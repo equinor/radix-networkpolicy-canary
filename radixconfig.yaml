@@ -18,3 +18,10 @@ spec:
         - name: http
           port: 5000
       publicPort: http
+      resources:
+        requests:
+          memory: "20M"
+          cpu: "100m"
+        limits:
+          memory: "20M"
+          cpu: "1000m"
