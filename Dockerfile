@@ -14,7 +14,7 @@
 # docker push stianovrevage/radix-canary-golang:0.1.7
 
 # Application build stage
-FROM golang:1.14-alpine3.11 as build
+FROM golang:1.16-alpine3.14 as build
 
 ENV GOPATH /go
 
