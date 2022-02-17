@@ -7,6 +7,15 @@ spec:
     - name: qa
       build:
         from: master
+      egressRules:
+        - destinations:
+            - "195.88.55.16/32"
+            - "195.88.54.16/32"
+          ports:
+            - number: 80
+              protocol: TCP
+            - number: 443
+              protocol: tcp
     - name: prod
       build:
         from: release

@@ -1,21 +1,19 @@
 package main
 
 import (
-	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"strings"
-	"math"
 
-	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/crypto/scrypt"
-
+	v1 "github.com/equinor/radix-operator/pkg/apis/radix/v1"
 	"github.com/gorilla/handlers"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -42,8 +40,24 @@ var requestCount int64
 var errorCount int64
 var sineWaveIterations float64
 
+type EgressOpening struct {
+	host string
+	port string
+}
+
 func main() {
 	fmt.Printf("Starting radix-canary-golang version %s\n", Version)
+
+	// expectedEgressOpenings := getExpectedEgressOpenings()
+	ra := &v1.RadixApplication{}
+	yamlFile, err := ioutil.ReadFile("/home/mlon/equinor/radix-networkpolicy-canary/radixconfig.yaml")
+	if err != nil {
+		fmt.Errorf(string(err.Error()))
+	}
+	err = yaml.Unmarshal([]byte(yamlFile), ra)
+	if err != nil {
+		fmt.Errorf(string(err.Error()))
+	}
 
 	// Register handler functions to URL paths
 	http.HandleFunc("/", Index)
@@ -51,8 +65,6 @@ func main() {
 	http.HandleFunc("/metrics", Metrics)
 	http.HandleFunc("/error", Error)
 	http.HandleFunc("/echo", Echo)
-	http.HandleFunc("/calculatehashesbcrypt", CalculateHashesBcrypt)
-	http.HandleFunc("/calculatehashesscrypt", CalculateHashesScrypt)
 
 	// See if listen_port environment variable is set
 	port := os.Getenv("LISTEN_PORT")
@@ -68,12 +80,20 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+port, handlers.CompressHandler(handlers.LoggingHandler(os.Stdout, http.DefaultServeMux))))
 }
 
+func getExpectedEgressOpenings() {
+	panic("unimplemented")
+}
+
 // Index handler returns a simple front page
 func Index(w http.ResponseWriter, r *http.Request) {
 	// Increase request count
 	requestCount++
 
 	fmt.Fprintf(w, "<h1>Radix Canary App v %s</h1>", Version)
+}
+
+func TestEgressRules() {
+
 }
 
 // Health handler returns a simple status code indicating system health
@@ -112,7 +132,7 @@ func Metrics(w http.ResponseWriter, r *http.Request) {
 
 	// Generate values across a sine wave every time metrics are pulled
 	sineWaveIterations += 1
-	sineWaveValue :=  math.Sin(sineWaveIterations * 0.01) + 1
+	sineWaveValue := math.Sin(sineWaveIterations*0.01) + 1
 
 	hostname, _ := os.Hostname()
 
@@ -135,7 +155,7 @@ func Metrics(w http.ResponseWriter, r *http.Request) {
 	appMetrics := map[string]interface{}{
 		"requests_total": requestCount,
 		"errors_total":   errorCount,
-		"sine_wave":   sineWaveValue,
+		"sine_wave":      sineWaveValue,
 	}
 
 	for metric, value := range appMetrics {
@@ -194,73 +214,4 @@ func Echo(w http.ResponseWriter, r *http.Request) {
 
 	// Write JSON to client
 	fmt.Fprintf(w, "%s", requestJSON)
-}
-
-// CalculateHashesBcrypt is a CPU intensive function that generates
-// a bcrypt hash for a string and then compares it
-func CalculateHashesBcrypt(w http.ResponseWriter, r *http.Request) {
-	// Increase request count
-	requestCount++
-
-	password1 := []byte("RadixExamplePassword")
-	password2 := []byte("RadixExamplePassword")
-
-	hash, err := bcrypt.GenerateFromPassword(password1, 15)
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "%s", err)
-		fmt.Fprintf(os.Stderr, "Could not generate hash: %s\n", err)
-		return
-	}
-
-	err = bcrypt.CompareHashAndPassword(hash, password2)
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "%s", err)
-		fmt.Fprintf(os.Stderr, "Could not compare hash: %s\n", err)
-		return
-	}
-
-	fmt.Fprintf(w, "%s matches %s", password2, hash)
-}
-
-// CalculateHashesScrypt is a CPU AND memory intensive
-// function that generates a scrypt derived key
-func CalculateHashesScrypt(w http.ResponseWriter, r *http.Request) {
-	// Increase request count
-	requestCount++
-
-	password1 := []byte("RadixExamplePassword")
-	password2 := []byte("RadixExamplePassword")
-
-	salt := []byte("kjefn2k3bfje")
-
-	dk, err := scrypt.Key(password1, salt, 262144, sCryptCost, 1, 32) // password, salt, cost-parameter, r, p, key length
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "%s", err)
-		fmt.Fprintf(os.Stderr, "Could not generate derived key: %s\n", err)
-		return
-	}
-
-	dkVerify, err := scrypt.Key(password2, salt, 262144, sCryptCost, 1, 32) // password, salt, cost-parameter, r, p, key length
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "%s", err)
-		fmt.Fprintf(os.Stderr, "Could not generate derived key: %s\n", err)
-		return
-	}
-
-	if bytes.Compare(dk, dkVerify) != 0 {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "%s", err)
-		fmt.Fprintf(os.Stderr, "Keys do not match\n", err)
-		return
-	}
-
-	fmt.Fprintf(w, "%s matches %s (b64 encoded)", password2, base64.StdEncoding.EncodeToString(dk))
 }
