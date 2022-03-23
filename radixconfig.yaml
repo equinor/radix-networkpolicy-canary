@@ -1,26 +1,25 @@
 apiVersion: radix.equinor.com/v1
 kind: RadixApplication
 metadata:
-  name: radix-canary-golang
+  name: radix-networkpolicy-canary
 spec:
   environments:
-    - name: qa
+    - name: egressrulestopublicdns
       build:
         from: master
       egressRules:
         - destinations:
-            - "195.88.55.16/32"
-            - "195.88.54.16/32"
+            - "1.0.0.1/32"
+            - "1.1.1.1/32"
+            - "8.8.8.8/32"
+            - "8.8.4.4/32"
           ports:
-            - number: 80
+            - number: 53
               protocol: TCP
-            - number: 443
-              protocol: tcp
-    - name: prod
-      build:
-        from: release
+            - number: 53
+              protocol: udp
   components:
-    - name: www
+    - name: web
       src: "."
       monitoring: true
       ports:

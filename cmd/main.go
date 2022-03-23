@@ -1,24 +1,27 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"math"
+	"net"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
-	v1 "github.com/equinor/radix-operator/pkg/apis/radix/v1"
 	"github.com/gorilla/handlers"
-	"gopkg.in/yaml.v2"
 )
 
 const (
 	// HealthStatusOK is a status code for when everything is OK
-	HealthStatusOK = 200
+	HealthStatusOK   = 200
+	CloudFlareDnsIp1 = "1.1.1.1"
+	CloudFlareDnsIp2 = "1.0.0.1"
+	GoogleDnsIp1     = "8.8.8.8"
+	GoogleDnsIp2     = "8.8.4.4"
 )
 
 const (
@@ -26,8 +29,6 @@ const (
 	Version = "0.1.17"
 	// ListenPort Default port for server to listen on unless specified in environment variable
 	ListenPort = "5000"
-	// sCryptCost is the cost parameter to scrypt. Must be a power of 2. If set to high the application will get OOM killed.
-	sCryptCost = 2
 )
 
 // HealthStatus defines various fields we might include in our health status
@@ -38,26 +39,11 @@ type HealthStatus struct {
 // Simple counters for application metrics
 var requestCount int64
 var errorCount int64
-var sineWaveIterations float64
-
-type EgressOpening struct {
-	host string
-	port string
-}
 
 func main() {
 	fmt.Printf("Starting radix-canary-golang version %s\n", Version)
 
-	// expectedEgressOpenings := getExpectedEgressOpenings()
-	ra := &v1.RadixApplication{}
-	yamlFile, err := ioutil.ReadFile("/home/mlon/equinor/radix-networkpolicy-canary/radixconfig.yaml")
-	if err != nil {
-		fmt.Errorf(string(err.Error()))
-	}
-	err = yaml.Unmarshal([]byte(yamlFile), ra)
-	if err != nil {
-		fmt.Errorf(string(err.Error()))
-	}
+	// Retrieving the default nameserver IPs from /etc/resolv.conf
 
 	// Register handler functions to URL paths
 	http.HandleFunc("/", Index)
@@ -65,6 +51,8 @@ func main() {
 	http.HandleFunc("/metrics", Metrics)
 	http.HandleFunc("/error", Error)
 	http.HandleFunc("/echo", Echo)
+	http.HandleFunc("/testpublicdns", testPublicDns)
+	http.HandleFunc("/testinternaldns", testInternalDns)
 
 	// See if listen_port environment variable is set
 	port := os.Getenv("LISTEN_PORT")
@@ -80,8 +68,70 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+port, handlers.CompressHandler(handlers.LoggingHandler(os.Stdout, http.DefaultServeMux))))
 }
 
-func getExpectedEgressOpenings() {
-	panic("unimplemented")
+func getDomains() []string {
+	return []string{"google.com", "microsoft.com", "netflix.com", "slack.com", "apple.com"}
+}
+
+func getDnsServers() []string {
+	return []string{CloudFlareDnsIp1, CloudFlareDnsIp2, GoogleDnsIp1, GoogleDnsIp2}
+}
+
+func testInternalDns(writer http.ResponseWriter, request *http.Request) {
+	domains := getDomains()
+	for _, domain := range domains {
+		ips, err := net.LookupIP(domain)
+		if err == nil && ips != nil {
+			Health(writer, request)
+			return
+		}
+	}
+	Error(writer, request)
+}
+
+func testPublicDns(writer http.ResponseWriter, request *http.Request) {
+	domains := getDomains()
+	dnsServers := getDnsServers()
+	for _, domain := range domains {
+		for _, dnsServer := range dnsServers {
+			r := &net.Resolver{
+				PreferGo: true,
+				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+					d := net.Dialer{
+						Timeout: time.Millisecond * time.Duration(10000),
+					}
+					return d.DialContext(ctx, network, fmt.Sprintf("%s:%d", dnsServer, 53))
+				},
+			}
+			ips, err := r.LookupHost(context.Background(), domain)
+			if err == nil && ips != nil {
+				Health(writer, request)
+				return
+			}
+		}
+	}
+	Error(writer, request)
+}
+
+//func getDnsServerIps() (*DnsServerIps, error) {
+//	resolver, err := Config()
+//	var ips []string
+//	for _, ip := range resolver.Nameservers {
+//		ips = append(ips, ip)
+//	}
+//	return &DnsServerIps{value: ips}, err
+//}
+
+func isPortOpen(host string, port string, timeoutSeconds int64) bool {
+	timeout := time.Duration(timeoutSeconds * 1000000000)
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), timeout)
+	defer conn.Close()
+	if err != nil {
+		return false
+	}
+	if conn == nil {
+		return false
+	}
+	return true
 }
 
 // Index handler returns a simple front page
@@ -90,10 +140,6 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	requestCount++
 
 	fmt.Fprintf(w, "<h1>Radix Canary App v %s</h1>", Version)
-}
-
-func TestEgressRules() {
-
 }
 
 // Health handler returns a simple status code indicating system health
@@ -130,10 +176,6 @@ func Health(w http.ResponseWriter, r *http.Request) {
 func Metrics(w http.ResponseWriter, r *http.Request) {
 	requestCount++
 
-	// Generate values across a sine wave every time metrics are pulled
-	sineWaveIterations += 1
-	sineWaveValue := math.Sin(sineWaveIterations*0.01) + 1
-
 	hostname, _ := os.Hostname()
 
 	// Valid label names: [a-zA-Z_][a-zA-Z0-9_]*
@@ -155,7 +197,6 @@ func Metrics(w http.ResponseWriter, r *http.Request) {
 	appMetrics := map[string]interface{}{
 		"requests_total": requestCount,
 		"errors_total":   errorCount,
-		"sine_wave":      sineWaveValue,
 	}
 
 	for metric, value := range appMetrics {
