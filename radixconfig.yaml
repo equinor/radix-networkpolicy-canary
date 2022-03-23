@@ -14,9 +14,9 @@ spec:
             - "8.8.8.8/32"
             - "8.8.4.4/32"
           ports:
-            - number: 53
+            - port: 53
               protocol: TCP
-            - number: 53
+            - port: 53
               protocol: udp
   components:
     - name: web
