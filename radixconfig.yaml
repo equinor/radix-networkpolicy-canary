@@ -17,7 +17,7 @@ spec:
             - number: 53
               protocol: TCP
             - number: 53
-              protocol: udp
+              protocol: UDP
   components:
     - name: web
       src: "."
