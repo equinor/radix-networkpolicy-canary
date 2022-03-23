@@ -6,7 +6,7 @@ spec:
   environments:
     - name: egressrulestopublicdns
       build:
-        from: master
+        from: main
       egressRules:
         - destinations:
             - "1.0.0.1/32"
