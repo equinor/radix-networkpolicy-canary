@@ -26,7 +26,7 @@ const (
 
 const (
 	// Version is the version number of Radix Canary Golang
-	Version = "0.1.17"
+	Version = "0.1.18"
 	// ListenPort Default port for server to listen on unless specified in environment variable
 	ListenPort = "5000"
 )
