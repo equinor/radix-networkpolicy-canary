@@ -9,10 +9,10 @@ spec:
         from: main
       egressRules:
         - destinations:
-            - "1.0.0.1/32"
-            - "1.1.1.1/32"
-            - "8.8.8.8/32"
-            - "8.8.4.4/32"
+            - "1.0.0.1/32" #cloudflare
+            - "1.1.1.1/32" #cloudflare
+            - "8.8.8.8/32" #google
+            - "8.8.4.4/32" #google
           ports:
             - port: 53
               protocol: TCP
