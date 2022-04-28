@@ -112,15 +112,6 @@ func testPublicDns(writer http.ResponseWriter, request *http.Request) {
 	Error(writer, request)
 }
 
-//func getDnsServerIps() (*DnsServerIps, error) {
-//	resolver, err := Config()
-//	var ips []string
-//	for _, ip := range resolver.Nameservers {
-//		ips = append(ips, ip)
-//	}
-//	return &DnsServerIps{value: ips}, err
-//}
-
 func isPortOpen(host string, port string, timeoutSeconds int64) bool {
 	timeout := time.Duration(timeoutSeconds * 1000000000)
 	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), timeout)
