@@ -25,6 +25,12 @@ spec:
         from: main
       egress:
         allowRadix: false
+  jobs:
+    - name: myjob
+      src: ./jobsrc
+      schedulerPort: 9000
+      timeLimitSeconds: 1
+      runAsNonRoot: true
   components:
     - name: redis
       image: bitnami/redis:latest
