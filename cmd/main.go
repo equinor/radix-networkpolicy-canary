@@ -76,6 +76,7 @@ func getDnsServers() []string {
 	return []string{CloudFlareDnsIp1, CloudFlareDnsIp2, GoogleDnsIp1, GoogleDnsIp2}
 }
 
+// testInternalDns iterates over multiple high profile domains. If any of the domains can be resolved, the test passes.
 func testInternalDns(writer http.ResponseWriter, request *http.Request) {
 	domains := getDomains()
 	for _, domain := range domains {
@@ -88,6 +89,8 @@ func testInternalDns(writer http.ResponseWriter, request *http.Request) {
 	Error(writer, request)
 }
 
+// testPublicDns iterates over multiple public DNS servers and multiple high profile domains. This test passes
+// if any DNS server can resolve any domain. The test will only fail if every DNS server fails on every domain.
 func testPublicDns(writer http.ResponseWriter, request *http.Request) {
 	domains := getDomains()
 	dnsServers := getDnsServers()
