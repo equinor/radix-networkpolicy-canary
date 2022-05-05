@@ -55,11 +55,11 @@ spec:
       environmentConfig:
         - environment: oauthdenyall
           authentication:
-          oauth2:
-            clientId: 5e48ca1f-a2bf-4dec-b96d-bbf8ce69f9f6
-            scope: openid profile email offline_access
-            setXAuthRequestHeaders: true
-            setAuthorizationHeader: true
-            sessionStoreType: redis
-            redisStore:
-              connectionUrl: redis://redis:6379
+            oauth2:
+              clientId: 5e48ca1f-a2bf-4dec-b96d-bbf8ce69f9f6
+              scope: openid profile email offline_access
+              setXAuthRequestHeaders: true
+              setAuthorizationHeader: true
+              sessionStoreType: redis
+              redisStore:
+                connectionUrl: redis://redis:6379
