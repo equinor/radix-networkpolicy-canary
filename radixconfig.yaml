@@ -7,7 +7,9 @@ spec:
     - name: egressrulestopublicdns
       build:
         from: main
-      egressRules:
+      egress:
+        allowRadix: false
+        rules:
         - destinations:
             - "1.0.0.1/32" #cloudflare
             - "1.1.1.1/32" #cloudflare
@@ -18,7 +20,24 @@ spec:
               protocol: TCP
             - port: 53
               protocol: UDP
+    - name: oauthdenyall
+      build:
+        from: main
+      egress:
+        allowRadix: false
   components:
+    - name: redis
+      image: bitnami/redis:latest
+      secrets:
+        - REDIS_PASSWORD
+      ports:
+        - name: redis
+          port: 6379
+      environmentConfig:
+        - environment: oauthdenyall
+          replicas: 1
+        - environment: egressrulestopublicdns
+          replicas: 0
     - name: web
       src: "."
       monitoring: true
@@ -31,5 +50,16 @@ spec:
           memory: "20M"
           cpu: "100m"
         limits:
-          memory: "20M"
+          memory: "200M"
           cpu: "1000m"
+      environmentConfig:
+        - environment: oauthdenyall
+          authentication:
+          oauth2:
+            clientId: 5e48ca1f-a2bf-4dec-b96d-bbf8ce69f9f6
+            scope: openid profile email offline_access
+            setXAuthRequestHeaders: true
+            setAuthorizationHeader: true
+            sessionStoreType: redis
+            redisStore:
+              connectionUrl: redis://redis:6379
