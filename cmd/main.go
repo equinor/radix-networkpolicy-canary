@@ -90,6 +90,7 @@ func getDnsServers() []string {
 }
 
 func urlReturns200(url string) bool {
+	println(fmt.Sprintf("Sending request to %s", url))
 	response, err := http.Get(url)
 	if err == nil && response.StatusCode == 200 {
 		return true
@@ -145,7 +146,8 @@ func testPublicDns(writer http.ResponseWriter, request *http.Request) {
 }
 
 func testJobScheduler(writer http.ResponseWriter, request *http.Request) {
-	url := fmt.Sprintf("https://%s:%d%s", JobSchedulerFQDN, getJobSchedulerPort(), JobsPath)
+	url := fmt.Sprintf("http://%s:%d%s", JobSchedulerFQDN, getJobSchedulerPort(), JobsPath)
+	println(fmt.Sprintf("Sending request to %s", url))
 	if urlReturns200(url) {
 		Health(writer, request)
 		return
@@ -155,7 +157,8 @@ func testJobScheduler(writer http.ResponseWriter, request *http.Request) {
 
 func startJobBatch(writer http.ResponseWriter, request *http.Request) {
 	// curl -X POST "http://127.0.0.1:9000/api/v1/batches" -H  "accept: application/json" -H  "Content-Type: application/json" -d "{  \"jobScheduleDescriptions\": [    {      \"timeLimitSeconds\": 1    }  ]}"
-	url := fmt.Sprintf("https://%s:%d%s", JobSchedulerFQDN, getJobSchedulerPort(), BatchesPath)
+	url := fmt.Sprintf("http://%s:%d%s", JobSchedulerFQDN, getJobSchedulerPort(), BatchesPath)
+	println(fmt.Sprintf("Sending request to %s", url))
 	jsonStr := []byte(`{  \"jobScheduleDescriptions\": [    {      \"timeLimitSeconds\": 1    }  ]}`)
 
 	response, err := http.Post(url, "application/json", bytes.NewBuffer(jsonStr))
