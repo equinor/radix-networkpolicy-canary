@@ -25,6 +25,11 @@ spec:
         from: main
       egress:
         allowRadix: false
+    - name: allowradix
+      build:
+        from: main
+      egress:
+        allowRadix: true
   jobs:
     - name: myjob
       src: ./jobsrc
@@ -43,6 +48,8 @@ spec:
         - environment: oauthdenyall
           replicas: 1
         - environment: egressrulestopublicdns
+          replicas: 0
+        - environment: allowradix
           replicas: 0
     - name: web
       src: "."

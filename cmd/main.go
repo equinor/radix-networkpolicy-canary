@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -22,6 +23,9 @@ const (
 	CloudFlareDnsIp2 = "1.0.0.1"
 	GoogleDnsIp1     = "8.8.8.8"
 	GoogleDnsIp2     = "8.8.4.4"
+	JobsPath         = "/api/v1/jobs"
+    BatchesPath      = "/api/v1/batches"
+	JobSchedulerFQDN = "myjob"
 )
 
 const (
@@ -53,6 +57,10 @@ func main() {
 	http.HandleFunc("/echo", Echo)
 	http.HandleFunc("/testpublicdns", testPublicDns)
 	http.HandleFunc("/testinternaldns", testInternalDns)
+	http.HandleFunc("/testjobscheduler", testJobScheduler)
+	http.HandleFunc("/startjobbatch", startJobBatch)
+	http.HandleFunc("/testexternalwebsite", testExternalWebsite)
+	http.HandleFunc("/testradixsite", testRadixSite)
 
 	// See if listen_port environment variable is set
 	port := os.Getenv("LISTEN_PORT")
@@ -74,6 +82,22 @@ func getDomains() []string {
 
 func getDnsServers() []string {
 	return []string{CloudFlareDnsIp1, CloudFlareDnsIp2, GoogleDnsIp1, GoogleDnsIp2}
+}
+
+func urlReturns200(url string) bool {
+	response, err := http.Get(url)
+	if err == nil && response.StatusCode == 200 {
+		return true
+	}
+	return false
+}
+
+func getGolangCanaryFQDN() string {
+	radixDnsZone, isDefined := os.LookupEnv("RADIX_DNS_ZONE")
+	if !isDefined {
+		fmt.Println("Could not find RADIX_DNS_ZONE")
+	}
+	return fmt.Sprintf("https://www-radix-canary-golang-prod.%s", radixDnsZone)
 }
 
 // testInternalDns iterates over multiple high profile domains. If any of the domains can be resolved, the test passes.
@@ -110,6 +134,47 @@ func testPublicDns(writer http.ResponseWriter, request *http.Request) {
 				Health(writer, request)
 				return
 			}
+		}
+	}
+	Error(writer, request)
+}
+
+func testJobScheduler(writer http.ResponseWriter, request *http.Request) {
+	url := fmt.Sprintf("https://%s%s", JobSchedulerFQDN, JobsPath)
+	if urlReturns200(url) {
+		Health(writer, request)
+		return
+	}
+	Error(writer, request)
+}
+
+func startJobBatch(writer http.ResponseWriter, request *http.Request) {
+	// curl -X POST "http://127.0.0.1:9000/api/v1/batches" -H  "accept: application/json" -H  "Content-Type: application/json" -d "{  \"jobScheduleDescriptions\": [    {      \"timeLimitSeconds\": 1    }  ]}"
+	url := fmt.Sprintf("https://%s%s", JobSchedulerFQDN, BatchesPath)
+	jsonStr := []byte(`{  \"jobScheduleDescriptions\": [    {      \"timeLimitSeconds\": 1    }  ]}`)
+	
+	response, err := http.Post(url, "application/json", bytes.NewBuffer(jsonStr))
+	if err == nil && response.StatusCode == 200 {
+		Health(writer, request)
+		return
+	}
+	Error(writer, request)
+}
+
+func testRadixSite(writer http.ResponseWriter, request *http.Request) {
+	url := getGolangCanaryFQDN()
+	if urlReturns200(url) {
+		Health(writer, request)
+		return
+	}
+	Error(writer, request)
+}
+
+func testExternalWebsite(writer http.ResponseWriter, request *http.Request) {
+	for _, d := range getDomains() {
+		if urlReturns200(fmt.Sprintf("https://%s", d)) {
+			Health(writer, request)
+			return
 		}
 	}
 	Error(writer, request)
