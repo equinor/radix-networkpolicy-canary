@@ -159,13 +159,14 @@ func startJobBatch(writer http.ResponseWriter, request *http.Request) {
 	// curl -X POST "http://127.0.0.1:9000/api/v1/batches" -H  "accept: application/json" -H  "Content-Type: application/json" -d "{  \"jobScheduleDescriptions\": [    {      \"timeLimitSeconds\": 1    }  ]}"
 	url := fmt.Sprintf("http://%s:%d%s", JobSchedulerFQDN, getJobSchedulerPort(), BatchesPath)
 	println(fmt.Sprintf("Sending request to %s", url))
-	jsonStr := []byte(`{  \"jobScheduleDescriptions\": [    {      \"timeLimitSeconds\": 1    }  ]}`)
+	jsonStr := []byte(`{  "jobScheduleDescriptions": [    {      "timeLimitSeconds": 1    }  ]}`)
 
 	response, err := http.Post(url, "application/json", bytes.NewBuffer(jsonStr))
 	if err == nil && response.StatusCode == 200 {
 		Health(writer, request)
 		return
 	}
+	println(err)
 	Error(writer, request)
 }
 
