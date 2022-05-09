@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,7 +25,7 @@ const (
 	GoogleDnsIp1     = "8.8.8.8"
 	GoogleDnsIp2     = "8.8.4.4"
 	JobsPath         = "/api/v1/jobs"
-    BatchesPath      = "/api/v1/batches"
+	BatchesPath      = "/api/v1/batches"
 	JobSchedulerFQDN = "myjob"
 )
 
@@ -44,6 +45,16 @@ type HealthStatus struct {
 var requestCount int64
 var errorCount int64
 
+func getInt64FromEnvVar(envVarName string) int64 {
+	numberAsString := os.Getenv(envVarName)
+	numberAsInt, _ := strconv.Atoi(numberAsString)
+	return int64(numberAsInt)
+}
+
+func getJobSchedulerPort() int64 {
+	return getInt64FromEnvVar("JOB_SCHEDULER_PORT")
+}
+
 func main() {
 	fmt.Printf("Starting radix-canary-golang version %s\n", Version)
 
@@ -62,13 +73,7 @@ func main() {
 	http.HandleFunc("/testexternalwebsite", testExternalWebsite)
 	http.HandleFunc("/testradixsite", testRadixSite)
 
-	// See if listen_port environment variable is set
-	port := os.Getenv("LISTEN_PORT")
-
-	// Default port if none given
-	if port == "" {
-		port = ListenPort
-	}
+	port := os.Getenv("LISTENING_PORT")
 
 	fmt.Printf("Starting server on port %v\n", port)
 
@@ -140,7 +145,7 @@ func testPublicDns(writer http.ResponseWriter, request *http.Request) {
 }
 
 func testJobScheduler(writer http.ResponseWriter, request *http.Request) {
-	url := fmt.Sprintf("https://%s%s", JobSchedulerFQDN, JobsPath)
+	url := fmt.Sprintf("https://%s:%d%s", JobSchedulerFQDN, getJobSchedulerPort(), JobsPath)
 	if urlReturns200(url) {
 		Health(writer, request)
 		return
@@ -150,9 +155,9 @@ func testJobScheduler(writer http.ResponseWriter, request *http.Request) {
 
 func startJobBatch(writer http.ResponseWriter, request *http.Request) {
 	// curl -X POST "http://127.0.0.1:9000/api/v1/batches" -H  "accept: application/json" -H  "Content-Type: application/json" -d "{  \"jobScheduleDescriptions\": [    {      \"timeLimitSeconds\": 1    }  ]}"
-	url := fmt.Sprintf("https://%s%s", JobSchedulerFQDN, BatchesPath)
+	url := fmt.Sprintf("https://%s:%d%s", JobSchedulerFQDN, getJobSchedulerPort(), BatchesPath)
 	jsonStr := []byte(`{  \"jobScheduleDescriptions\": [    {      \"timeLimitSeconds\": 1    }  ]}`)
-	
+
 	response, err := http.Post(url, "application/json", bytes.NewBuffer(jsonStr))
 	if err == nil && response.StatusCode == 200 {
 		Health(writer, request)
