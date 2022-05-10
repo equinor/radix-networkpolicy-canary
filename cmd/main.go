@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -156,14 +157,13 @@ func testJobScheduler(writer http.ResponseWriter, request *http.Request) {
 }
 
 func startJobBatch(writer http.ResponseWriter, request *http.Request) {
-	// curl -X POST "http://127.0.0.1:9000/api/v1/batches" -H  "accept: application/json" -H  "Content-Type: application/json" -d "{  \"jobScheduleDescriptions\": [    {      \"timeLimitSeconds\": 1    }  ]}"
 	url := fmt.Sprintf("http://%s:%d%s", JobSchedulerFQDN, getJobSchedulerPort(), BatchesPath)
 	println(fmt.Sprintf("Sending request to %s", url))
 	jsonStr := []byte(`{  "jobScheduleDescriptions": [    {      "timeLimitSeconds": 1    }  ]}`)
 
 	response, err := http.Post(url, "application/json", bytes.NewBuffer(jsonStr))
 	if err == nil && response.StatusCode == 200 {
-		Health(writer, request)
+		RelayResponse(writer, request, response)
 		return
 	}
 	println(err)
@@ -238,6 +238,19 @@ func Health(w http.ResponseWriter, r *http.Request) {
 
 	// Write JSON to client
 	fmt.Fprintf(w, "%s", healthJSON)
+}
+
+func RelayResponse(w http.ResponseWriter, r *http.Request, res *http.Response) {
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Could not read response: %s\n", err)
+
+		errorCount++
+		return
+	}
+	fmt.Fprintf(w, "%s", body)
+	w.WriteHeader(res.StatusCode)
 }
 
 // Metrics handler returns some application metrics in JSON format
