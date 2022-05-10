@@ -180,8 +180,12 @@ func testRadixSite(writer http.ResponseWriter, request *http.Request) {
 }
 
 func testExternalWebsite(writer http.ResponseWriter, request *http.Request) {
+	client := http.Client{
+		Timeout: 10 * time.Second,
+	}
 	for _, d := range getDomains() {
-		if urlReturns200(fmt.Sprintf("https://%s", d)) {
+		response, err := client.Get(fmt.Sprintf("https://%s", d))
+		if err == nil && response.StatusCode == 200 {
 			Health(writer, request)
 			return
 		}
