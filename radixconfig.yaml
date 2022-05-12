@@ -53,6 +53,8 @@ spec:
           replicas: 0
     - name: web
       src: "."
+      secrets:
+        - NETWORKPOLICY_CANARY_PASSWORD
       monitoring: true
       ports:
         - name: http
