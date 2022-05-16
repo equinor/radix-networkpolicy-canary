@@ -74,7 +74,7 @@ spec:
         - environment: oauthdenyall
           authentication:
             oauth2:
-              clientId: 5e48ca1f-a2bf-4dec-b96d-bbf8ce69f9f6
+              clientId: 46e3125d-4465-4217-9a71-20b3dc91d9f4
               scope: openid profile email offline_access
               setXAuthRequestHeaders: true
               setAuthorizationHeader: true
