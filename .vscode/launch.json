@@ -11,8 +11,9 @@
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/main.go",
             "env": {
-                "LISTENING_PORT": "5000",
+                "LISTENING_PORT": "6000",
                 "JOB_SCHEDULER_PORT": "9000",
+                "NETWORKPOLICY_CANARY_PASSWORD": "passwordSentInHeaderFromCicdCanary",
               },
         }
     ]

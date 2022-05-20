@@ -56,6 +56,10 @@ func getJobSchedulerPort() int64 {
 	return getInt64FromEnvVar("JOB_SCHEDULER_PORT")
 }
 
+func getHttpPassword() string {
+	return os.Getenv("NETWORKPOLICY_CANARY_PASSWORD")
+}
+
 func main() {
 	fmt.Printf("Starting radix-canary-golang version %s\n", Version)
 
@@ -157,17 +161,22 @@ func testJobScheduler(writer http.ResponseWriter, request *http.Request) {
 }
 
 func startJobBatch(writer http.ResponseWriter, request *http.Request) {
-	url := fmt.Sprintf("http://%s:%d%s", JobSchedulerFQDN, getJobSchedulerPort(), BatchesPath)
-	println(fmt.Sprintf("Sending request to %s", url))
-	jsonStr := []byte(`{  "jobScheduleDescriptions": [    {      "timeLimitSeconds": 1    }  ]}`)
+	if requestIsAuthorized(request) {
+		url := fmt.Sprintf("http://%s:%d%s", JobSchedulerFQDN, getJobSchedulerPort(), BatchesPath)
+		println(fmt.Sprintf("Sending request to %s", url))
+		jsonStr := []byte(`{  "jobScheduleDescriptions": [    {      "timeLimitSeconds": 1    }  ]}`)
 
-	response, err := http.Post(url, "application/json", bytes.NewBuffer(jsonStr))
-	if err == nil && response.StatusCode == 200 {
-		RelayResponse(writer, request, response)
-		return
+		response, err := http.Post(url, "application/json", bytes.NewBuffer(jsonStr))
+		if err == nil && response.StatusCode == 200 {
+			RelayResponse(writer, request, response)
+			return
+		}
+		println(err)
+		Error(writer, request)
+	} else {
+		println("Received unauthorized request")
+		Unauthorized(writer, request)
 	}
-	println(err)
-	Error(writer, request)
 }
 
 func testRadixSite(writer http.ResponseWriter, request *http.Request) {
@@ -244,6 +253,16 @@ func Health(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s", healthJSON)
 }
 
+func requestIsAuthorized(request *http.Request) bool {
+	reqToken := request.Header.Get("Authorization")
+	splitToken := strings.Split(reqToken, "Bearer ")
+	if len(splitToken) < 2 {
+		return false
+	}
+	reqToken = splitToken[1]
+	return reqToken == getHttpPassword()
+}
+
 func RelayResponse(w http.ResponseWriter, r *http.Request, res *http.Response) {
 	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
@@ -300,6 +319,25 @@ func Error(w http.ResponseWriter, r *http.Request) {
 		errorJSON, _ := json.Marshal(map[string]interface{}{"Error": fmt.Sprintf("%s", err)})
 
 		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "%s", errorJSON)
+
+		fmt.Fprintf(os.Stderr, "Server error: %s\n", err)
+
+		errorCount++
+		return
+	}
+}
+
+// Unauthorized handler returns an error
+func Unauthorized(w http.ResponseWriter, r *http.Request) {
+	requestCount++
+
+	err := errors.New("Unauthorized request")
+
+	if err != nil {
+		errorJSON, _ := json.Marshal(map[string]interface{}{"Error": fmt.Sprintf("%s", err)})
+
+		w.WriteHeader(http.StatusUnauthorized)
 		fmt.Fprintf(w, "%s", errorJSON)
 
 		fmt.Fprintf(os.Stderr, "Server error: %s\n", err)
