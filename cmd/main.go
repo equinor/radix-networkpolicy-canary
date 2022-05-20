@@ -202,19 +202,6 @@ func testExternalWebsite(writer http.ResponseWriter, request *http.Request) {
 	Error(writer, request)
 }
 
-func isPortOpen(host string, port string, timeoutSeconds int64) bool {
-	timeout := time.Duration(timeoutSeconds * 1000000000)
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), timeout)
-	defer conn.Close()
-	if err != nil {
-		return false
-	}
-	if conn == nil {
-		return false
-	}
-	return true
-}
-
 // Index handler returns a simple front page
 func Index(w http.ResponseWriter, r *http.Request) {
 	// Increase request count
