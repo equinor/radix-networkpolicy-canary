@@ -1,43 +1,23 @@
-# Radix Canary (Golang)
+# Radix Networkpolicy Canary
  
 ## Purpose
 
 
-To have a simple example application that can be used:
+To have a canary test application which is used
 
-- **Primary** As an endpoint for continous monitoring to establish stability and performance baselines and Radix platform SLA measurements
-- **Secondary** To verify build and deployment pipelines in Radix
-- **Secondary** To verify that HTTP requests sent through Kubernetes ingresses and proxies arrive as expected
-- __Bonus__ Demonstrate some best practices of an application that is to be deployed on the Radix platform
-- __Bonus__ Generate CPU and memory load on the Radix platform
+- **Primarily** To verify that the Radix [egress rule feature](https://www.radix.equinor.com/guides/egress-config/) works as intended.
+- **Secondarily** To verify that scheduling of [Radix jobs and Radix batch jobs](https://www.radix.equinor.com/guides/configure-jobs/) works as inteded.
+- **Secondarily** To verify that the internal K8s DNS resolver in Radix works as inteded.
 
-## Inspiration, models, mental frameworks
-
-As with any new application we try to follow the general tenants of the 12FA - [The Twelve-Factor App](https://12factor.net/)
-
-## Running locally
-
-  `go run src/equinor.com/radix-canary-golang/cmd/main.go`
+The endpoints of this application are queried in regular intervals by the [radix-cicd-canary application](https://github.com/equinor/radix-cicd-canary).
 
 ## Building and running using Docker
 
-Build image:
+`docker build . -t networkpolicycanary && docker run --rm -e LISTENING_PORT=5000 networkpolicycanary`
 
-  `docker build --tag radix-canary-golang:latest -f Dockerfile .`
+NB! The `/testjobscheduler` and `/startjobbatch` will not work if the app is run outside Radix.
 
-Run image:
-
-  `docker run -p 5000:5000 -e "LISTEN_PORT=5000" radix-canary-golang:latest`
-
-## Deploy to Kubernetes
-
-  `kubectl create -f deployment-service.yaml`
-
-## Register on Radix Platform
-
-  `kubectl create -f radixregistration.yaml`
-
-## Features
+## Endpoints
 
 - Server port configured by environment variables
 - Log output to `stdout` and `stderr`
@@ -45,23 +25,47 @@ Run image:
 - /metrics - returns number of requests and errors
 - /error - increases error count and returns HTTP 500 with an error
 - /echo - returns the incomming request data including headers
-- /calculatehashesbcrypt - CPU intensive task that generate and compare Bcrypt hashes
-- /calculatehashesscrypt - CPU and memory intensive task that generates Scrypt derived keys 
+- /testpublicdns - resolves any of 5 well known domains against Google and CloudFlare nameservers. Returns 200 OK if successful.
+- /testinternaldns - resolves any of 5 well known domains against internal K8s nameservers. Returns 200 OK if successful.
+- /testjobscheduler - creates job by querying Radix job scheduler. 200 OK if successful.
+- /startjobbatch - creates job batch by querying Radix job scheduler. 200 OK if no error. NB! 200 OK does not guarantee job batch was scheduled successfuly. Success must be verified by querying K8s API and checking new job batch.
+- /testexternalwebsite - queries any of 5 well known external websites. 200 OK if successful.
+- /testradixsite - queries [the radix-canary-golang application](https://github.com/equinor/radix-canary-golang). 200 OK if successful.
 
-The /health endpoint is a common pattern and is used by load balancers and service discovery to determine if a node should receive requests. Read more on [microservices.io](http://microservices.io/patterns/observability/health-check-api.html)
+In addition, the *oauthdenyall* environment also has standard OAuthv2 endpoints, including `/oauth2/callback`.
 
-The /metrics endpoint is also a common pattern and is used by scrapers, such as Prometheus, to gather application metrics. This application spits out a very basic Prometheus-compatible counter. For production you should use the official Prometheus client libraries to export metrics: https://godoc.org/github.com/prometheus/client_golang/prometheus . Also look for the Radix Monitoring Manual on general information on monitoring and instrumentation. 
+## Application environments
 
-The /error endpoint is just an example on how to return a different HTTP status code and some payload.
+This Radix application has three different Radix environments where each environment has a different set of egress rules. 
 
-The /echo endpoint returns the incomming request as seen from the server. This is useful since there might be intermediate proxies that modifies a request before arriving at a server. Using this we can verify that a request arrives as expected.
+* **egressrulestopublicdns:** Allows traffic to Google and CloudFlare public nameservers.
+* **oauthdenyall:** Denies all traffic. Only allows traffic permitted by default rules.
+* **allowradix:** Denies all traffic except to the Radix cluster which the app runs in.
 
-The /calculatehashesbcrypt and /calculatehashesscrypt endpoints emulate CPU and memory intensive operations. Using these we can try to break things and discover failure modes and practice operations without needing a huge load generator as a client.
+The *oathdenyall* environment also has the [Radix OAuthv2 feature](https://www.radix.equinor.com/guides/authentication/#using-the-radix-oauth2-feature) enabled, but the other two environments do not. This table shows the expected result when the radix-cicd-canary app queries each endpoint in each app environment.
 
-## Load testing
+### Expected response from each endpoint in each app environment
+|                      | egressrulestopublicdns | oauthdenyall | allowradix |
+|----------------------|------------------------|--------------|------------|
+| /testpublicdns       | <span style="color:green">200</span>                    | <span style="color:yellow">302</span>          | <span style="color:red">500</span>        |
+| /testinternaldns     | <span style="color:green">200</span>                    | <span style="color:yellow">302</span>          | <span style="color:green">200</span>        |
+| /testjobscheduler    | <span style="color:green">200</span>                    | <span style="color:yellow">302</span>          | <span style="color:green">200</span>        |
+| /startjobbatch       | <span style="color:green">200</span>                    | <span style="color:yellow">302</span>          | <span style="color:green">200</span>        |
+| /testexternalwebsite | <span style="color:red">500</span>                    | <span style="color:yellow">302</span>          | <span style="color:red">500</span>        |
+| /testradixsite       | <span style="color:red">500</span>                    | <span style="color:yellow">302</span>          | <span style="color:green">200</span>        |
+| /oauth2/callback?code=bullshitcode       | <span style="color:red">404</span>                    | <span style="color:red">500</span>          | <span style="color:red">404</span>        |
 
-k6 run -< k6_test_canary.js
+When the `/oauth2/callback?code=bullshitcode` endpoint in the *oauthdenyall* environment is queried, the radix-cicd-canary app expects a 500 response within 15 seconds. If the request takes longer, it is assumed that the radix-networkpolicy-canary app does not have network access to Microsoft's IDP endpoint, and the test is considered a failure.
 
-## Further reading
+### Which endpoints are queried by radix-cicd-canary in each app environment
+Not all endpoints are queried in every app environment. This table shows the situation as of May 2022.
 
-[How I write Go HTTP services after seven years](https://medium.com/statuscode/how-i-write-go-http-services-after-seven-years-37c208122831) is a good source of inspiration for patterns on building larger Golang web services.
+|  | egressrulestopublicdns | oauthdenyall | allowradix |
+|---|---|---|---|
+| /testpublicdns | Yes | No | No |
+| /testinternaldns | Yes | No | No |
+| /testjobscheduler | Yes | No | Yes |
+| /startjobbatch | Yes | No | Yes |
+| /testexternalwebsite | Yes | No | Yes |
+| /testradixsite | Yes | No | Yes |
+| /oauth2/callback?code=bullshitcode | No | Yes | No |

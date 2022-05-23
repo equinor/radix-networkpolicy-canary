@@ -1,26 +1,11 @@
-# Building:
-# docker build --tag radix-canary-golang:latest -f Dockerfile .
-# docker run -p 5000:5000 -e "LISTEN_PORT=5000" radix-canary-golang:latest
-
-# Private ACR:
-# docker tag radix-canary-golang:latest radixdev.azurecr.io/radix-canary-golang:latest
-# docker push radixdev.azurecr.io/radix-canary-golang:latest
-
-# Public Dockerhub:
-# docker tag radix-canary-golang:latest stianovrevage/radix-canary-golang:latest
-# docker push stianovrevage/radix-canary-golang:latest
-
-# docker tag radix-canary-golang:latest stianovrevage/radix-canary-golang:0.1.7
-# docker push stianovrevage/radix-canary-golang:0.1.7
-
 # Application build stage
 FROM golang:1.18-alpine3.15 as build
 
 ENV GOPATH /go
 
-COPY . /go/src/github.com/equinor/radix-canary-golang/
+COPY . /go/src/github.com/equinor/radix-networkpolicy-canary/
 
-WORKDIR /go/src/github.com/equinor/radix-canary-golang/
+WORKDIR /go/src/github.com/equinor/radix-networkpolicy-canary/
 
 RUN apk add --no-cache git
 RUN go get -t -v ./... # go get -d -v
@@ -35,8 +20,8 @@ FROM alpine:3.15
 RUN addgroup user && adduser -D -G user 2000
 USER 2000
 
-COPY --from=build /go/src/github.com/equinor/radix-canary-golang/main /app/radix-canary-golang
+COPY --from=build /go/src/github.com/equinor/radix-networkpolicy-canary/main /app/radix-networkpolicy-canary
 
 EXPOSE 5000
 
-CMD ["/bin/sh", "-c", "/app/radix-canary-golang"]
+CMD ["/bin/sh", "-c", "/app/radix-networkpolicy-canary"]
