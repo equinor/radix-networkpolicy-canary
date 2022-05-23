@@ -38,7 +38,7 @@ spec:
       runAsNonRoot: true
   components:
     - name: redis
-      image: bitnami/minideb:bullseye-amd64
+      image: bitnami/redis:latest
       secrets:
         - REDIS_PASSWORD
       ports:
