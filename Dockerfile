@@ -12,7 +12,7 @@ RUN go get -t -v ./... # go get -d -v
 RUN go build -v cmd/main.go
 
 # Application run stage
-FROM alpine:3.15
+FROM alpine:3.16
 
 # Add bash if you need an interactive shell in the container, adds ~4MB to final image
 # RUN apk add --no-cache bash
