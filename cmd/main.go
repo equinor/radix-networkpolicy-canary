@@ -108,7 +108,11 @@ func getGolangCanaryFQDN() string {
 	if !isDefined {
 		fmt.Println("Could not find RADIX_DNS_ZONE")
 	}
-	return fmt.Sprintf("https://www-radix-canary-golang-prod.%s", radixDnsZone)
+	clusterName, isDefined := os.LookupEnv("RADIX_CLUSTERNAME")
+	if !isDefined {
+		fmt.Println("Could not find RADIX_CLUSTERNAME")
+	}
+	return fmt.Sprintf("https://www-radix-canary-golang-prod.%s.%s", clusterName, radixDnsZone)
 }
 
 // testInternalDns iterates over multiple high profile domains. If any of the domains can be resolved, the test passes.
