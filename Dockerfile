@@ -1,5 +1,5 @@
 # Application build stage
-FROM golang:1.18-alpine3.15 as build
+FROM golang:1.19-alpine3.17 as build
 
 ENV GOPATH /go
 
@@ -12,7 +12,7 @@ RUN go get -t -v ./... # go get -d -v
 RUN go build -v cmd/main.go
 
 # Application run stage
-FROM alpine:3.15
+FROM alpine:3.17
 
 # Add bash if you need an interactive shell in the container, adds ~4MB to final image
 # RUN apk add --no-cache bash
