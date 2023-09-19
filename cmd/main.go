@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -97,10 +97,11 @@ func getDnsServers() []string {
 func urlReturns200(url string) bool {
 	println(fmt.Sprintf("Sending request to %s", url))
 	response, err := http.Get(url)
-	if err == nil && response.StatusCode == 200 {
-		return true
+	if err != nil {
+		return false
 	}
-	return false
+	defer response.Body.Close()
+	return response.StatusCode == 200
 }
 
 func getGolangCanaryFQDN() string {
@@ -171,11 +172,16 @@ func startJobBatch(writer http.ResponseWriter, request *http.Request) {
 		jsonStr := []byte(`{  "jobScheduleDescriptions": [    {      "timeLimitSeconds": 1    }  ]}`)
 
 		response, err := http.Post(url, "application/json", bytes.NewBuffer(jsonStr))
-		if err == nil && response.StatusCode == 200 {
+		if err != nil {
+			println(err)
+			Error(writer, request)
+			return
+		}
+		defer response.Body.Close()
+		if response.StatusCode == 200 {
 			RelayResponse(writer, request, response)
 			return
 		}
-		println(err)
 		Error(writer, request)
 	} else {
 		println("Received unauthorized request")
@@ -192,13 +198,18 @@ func testRadixSite(writer http.ResponseWriter, request *http.Request) {
 	Error(writer, request)
 }
 
+// testExternalWebsite iterates over multiple high profile domains. If any of the domains responds with status code 200, the test passes.
 func testExternalWebsite(writer http.ResponseWriter, request *http.Request) {
 	client := http.Client{
 		Timeout: 10 * time.Second,
 	}
 	for _, d := range getDomains() {
 		response, err := client.Get(fmt.Sprintf("https://%s", d))
-		if err == nil && response.StatusCode == 200 {
+		if err != nil {
+			continue
+		}
+		defer response.Body.Close()
+		if response.StatusCode == 200 {
 			Health(writer, request)
 			return
 		}
@@ -255,8 +266,7 @@ func requestIsAuthorized(request *http.Request) bool {
 }
 
 func RelayResponse(w http.ResponseWriter, r *http.Request, res *http.Response) {
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Could not read response: %s\n", err)
 
@@ -304,7 +314,7 @@ func Metrics(w http.ResponseWriter, r *http.Request) {
 func Error(w http.ResponseWriter, r *http.Request) {
 	requestCount++
 
-	err := errors.New("Can't fulfil request")
+	err := errors.New("can't fulfil request")
 
 	if err != nil {
 		errorJSON, _ := json.Marshal(map[string]interface{}{"Error": fmt.Sprintf("%s", err)})
