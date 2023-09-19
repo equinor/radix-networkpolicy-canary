@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -97,6 +97,11 @@ func getDnsServers() []string {
 func urlReturns200(url string) bool {
 	println(fmt.Sprintf("Sending request to %s", url))
 	response, err := http.Get(url)
+	defer func() {
+		if response != nil {
+			response.Body.Close()
+		}
+	}()
 	if err == nil && response.StatusCode == 200 {
 		return true
 	}
@@ -171,6 +176,11 @@ func startJobBatch(writer http.ResponseWriter, request *http.Request) {
 		jsonStr := []byte(`{  "jobScheduleDescriptions": [    {      "timeLimitSeconds": 1    }  ]}`)
 
 		response, err := http.Post(url, "application/json", bytes.NewBuffer(jsonStr))
+		defer func() {
+			if response != nil {
+				response.Body.Close()
+			}
+		}()
 		if err == nil && response.StatusCode == 200 {
 			RelayResponse(writer, request, response)
 			return
@@ -198,6 +208,11 @@ func testExternalWebsite(writer http.ResponseWriter, request *http.Request) {
 	}
 	for _, d := range getDomains() {
 		response, err := client.Get(fmt.Sprintf("https://%s", d))
+		defer func() {
+			if response != nil {
+				response.Body.Close()
+			}
+		}()
 		if err == nil && response.StatusCode == 200 {
 			Health(writer, request)
 			return
@@ -256,7 +271,7 @@ func requestIsAuthorized(request *http.Request) bool {
 
 func RelayResponse(w http.ResponseWriter, r *http.Request, res *http.Response) {
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Could not read response: %s\n", err)
 
@@ -304,7 +319,7 @@ func Metrics(w http.ResponseWriter, r *http.Request) {
 func Error(w http.ResponseWriter, r *http.Request) {
 	requestCount++
 
-	err := errors.New("Can't fulfil request")
+	err := errors.New("can't fulfil request")
 
 	if err != nil {
 		errorJSON, _ := json.Marshal(map[string]interface{}{"Error": fmt.Sprintf("%s", err)})
