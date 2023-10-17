@@ -1,3 +1,4 @@
+![allowradix](https://api.radix.equinor.com/api/v1/applications/radix-networkpolicy-canary/environments/allowradix/buildstatus)
 # Radix Networkpolicy Canary
  
 ## Purpose
