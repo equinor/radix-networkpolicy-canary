@@ -70,3 +70,12 @@ Not all endpoints are queried in every app environment. This table shows the sit
 | /testexternalwebsite | Yes | No | Yes |
 | /testradixsite | Yes | No | Yes |
 | /oauth2/callback?code=bullshitcode | No | Yes | No |
+
+
+## Contributing
+
+Read our [contributing guidelines](./CONTRIBUTING.md)
+
+------------------
+
+[Security notification](./SECURITY.md)
