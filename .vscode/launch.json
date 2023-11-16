@@ -14,6 +14,10 @@
                 "LISTENING_PORT": "6000",
                 "JOB_SCHEDULER_PORT": "9000",
                 "NETWORKPOLICY_CANARY_PASSWORD": "passwordSentInHeaderFromCicdCanary",
+                "RADIX_DNS_ZONE": "radix.equinor.com",
+                "RADIX_CLUSTERNAME": "eu-18",
+                "PRETTY_LOG": "true",
+                "LOG_LEVEL": "debug"
               },
         }
     ]
