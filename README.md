@@ -4,6 +4,7 @@
 ## Purpose
 
 
+
 To have a canary test application which is used
 
 - **Primarily** To verify that the Radix [egress rule feature](https://www.radix.equinor.com/guides/egress-config/) works as intended.
