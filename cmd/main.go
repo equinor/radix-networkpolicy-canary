@@ -380,7 +380,7 @@ func Unauthorized(w http.ResponseWriter, r *http.Request) {
 // Echo handler returns the incomming request with headers
 func Echo(w http.ResponseWriter, r *http.Request) {
 	logger := hlog.FromRequest(r)
-	logger.Info().Msgf("%+v", r)
+	logger.Debug().Msgf("%+v", r)
 
 	requestCount++
 
