@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -15,7 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/handlers"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -61,9 +62,38 @@ func getHttpPassword() string {
 }
 
 func main() {
-	fmt.Printf("Starting radix-canary-golang version %s\n", Version)
+	zerolog.DurationFieldInteger = true
+	logLevel := zerolog.InfoLevel
+	if envLogLevel := os.Getenv("LOG_LEVEL"); len(envLogLevel) > 0 {
+		if l, err := zerolog.ParseLevel(envLogLevel); err != nil {
+			log.Warn().Err(err).Msgf("Unable to parse LOG_LEVEL %s. Using default log level %s", envLogLevel, logLevel.String())
+		} else {
+			logLevel = l
+		}
+	}
+	zerolog.SetGlobalLevel(logLevel)
 
-	// Retrieving the default nameserver IPs from /etc/resolv.conf
+	if envPrettyLog := os.Getenv("PRETTY_LOG"); len(envPrettyLog) > 0 {
+		if pretty, err := strconv.ParseBool(os.Getenv("PRETTY_LOG")); err != nil {
+			log.Warn().Err(err).Msgf("Unable to parse LOG_LEVEL %s. Using default structured logging.", envPrettyLog)
+		} else if pretty {
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.TimeOnly})
+		}
+	}
+
+	logger := log.Logger
+	logger.Info().Msgf("Starting radix-canary-golang version %s", Version)
+
+	// Configure request logging
+	logHandler := hlog.NewHandler(logger)(
+		hlog.RequestHandler("request")(
+			hlog.RemoteAddrHandler("ip")(
+				hlog.AccessHandler(logRequest)(
+					hlog.UserAgentHandler("useragent")(http.DefaultServeMux),
+				),
+			),
+		),
+	)
 
 	// Register handler functions to URL paths
 	http.HandleFunc("/", Index)
@@ -79,11 +109,14 @@ func main() {
 	http.HandleFunc("/testradixsite", testRadixSite)
 
 	port := os.Getenv("LISTENING_PORT")
+	logger.Info().Msgf("Starting server on port %v", port)
+	if err := http.ListenAndServe(":"+port, logHandler); err != nil {
+		logger.Fatal().Err(err).Send()
+	}
+}
 
-	fmt.Printf("Starting server on port %v\n", port)
-
-	// Start server. Exit fatally on error
-	log.Fatal(http.ListenAndServe(":"+port, handlers.CompressHandler(handlers.LoggingHandler(os.Stdout, http.DefaultServeMux))))
+func logRequest(r *http.Request, status, size int, duration time.Duration) {
+	hlog.FromRequest(r).Info().Int("status", status).Int("size", size).Dur("took", duration).Send()
 }
 
 func getDomains() []string {
@@ -94,49 +127,64 @@ func getDnsServers() []string {
 	return []string{CloudFlareDnsIp1, CloudFlareDnsIp2, GoogleDnsIp1, GoogleDnsIp2}
 }
 
-func urlReturns200(url string) bool {
-	println(fmt.Sprintf("Sending request to %s", url))
-	response, err := http.Get(url)
+func urlReturns200(ctx context.Context, url string) bool {
+	logger := log.Ctx(ctx)
+	logger.Debug().Msgf("Sending request to %s", url)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
+		logger.Error().Err(err).Msg("Failed to create request")
+		return false
+	}
+	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		logger.Error().Err(err).Msg("Failed to send request")
 		return false
 	}
 	defer response.Body.Close()
 	return response.StatusCode == 200
 }
 
-func getGolangCanaryFQDN() string {
+func getGolangCanaryFQDN(ctx context.Context) string {
+	logger := log.Ctx(ctx)
 	radixDnsZone, isDefined := os.LookupEnv("RADIX_DNS_ZONE")
 	if !isDefined {
-		fmt.Println("Could not find RADIX_DNS_ZONE")
+		logger.Error().Msg("Could not find RADIX_DNS_ZONE")
 	}
 	clusterName, isDefined := os.LookupEnv("RADIX_CLUSTERNAME")
 	if !isDefined {
-		fmt.Println("Could not find RADIX_CLUSTERNAME")
+		logger.Error().Msg("Could not find RADIX_CLUSTERNAME")
 	}
 	return fmt.Sprintf("https://www-radix-canary-golang-prod.%s.%s", clusterName, radixDnsZone)
 }
 
 // testInternalDns iterates over multiple high profile domains. If any of the domains can be resolved, the test passes.
-func testInternalDns(writer http.ResponseWriter, request *http.Request) {
+func testInternalDns(w http.ResponseWriter, r *http.Request) {
+	logger := hlog.FromRequest(r)
 	domains := getDomains()
 	for _, domain := range domains {
+		logger.Debug().Msgf("Resolving IP for domain %s with default dns server", domain)
 		ips, err := net.LookupIP(domain)
 		if err == nil && ips != nil {
-			Health(writer, request)
+			logger.Debug().Msgf("Successfully resolved IP for domain %s with default dns server", domain)
+			Health(w, r)
 			return
 		}
+		logger.Warn().Err(err).Msgf("Failed to resolve IP for domain %s with default dns server", domain)
 	}
-	Error(writer, request)
+	Error(w, r)
 }
 
 // testPublicDns iterates over multiple public DNS servers and multiple high profile domains. This test passes
 // if any DNS server can resolve any domain. The test will only fail if every DNS server fails on every domain.
-func testPublicDns(writer http.ResponseWriter, request *http.Request) {
+func testPublicDns(w http.ResponseWriter, r *http.Request) {
+	logger := hlog.FromRequest(r)
 	domains := getDomains()
 	dnsServers := getDnsServers()
 	for _, domain := range domains {
 		for _, dnsServer := range dnsServers {
-			r := &net.Resolver{
+			logger.Debug().Msgf("Resolving IP for domain %s with dns server %s", domain, dnsServer)
+			resolver := &net.Resolver{
 				PreferGo: true,
 				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
 					d := net.Dialer{
@@ -145,76 +193,70 @@ func testPublicDns(writer http.ResponseWriter, request *http.Request) {
 					return d.DialContext(ctx, network, fmt.Sprintf("%s:%d", dnsServer, 53))
 				},
 			}
-			ips, err := r.LookupHost(context.Background(), domain)
+			ips, err := resolver.LookupHost(r.Context(), domain)
 			if err == nil && ips != nil {
-				Health(writer, request)
+				logger.Debug().Msgf("Successfully resolved IP for domain %s with dns server %s", domain, dnsServer)
+				Health(w, r)
 				return
 			}
+			logger.Warn().Err(err).Msgf("Failed to resolve IP for domain %s with dns server %s", domain, dnsServer)
 		}
 	}
-	Error(writer, request)
+	Error(w, r)
 }
 
-func testJobScheduler(writer http.ResponseWriter, request *http.Request) {
+func testJobScheduler(w http.ResponseWriter, r *http.Request) {
 	url := fmt.Sprintf("http://%s:%d%s", JobSchedulerFQDN, getJobSchedulerPort(), JobsPath)
-	println(fmt.Sprintf("Sending request to %s", url))
-	if urlReturns200(url) {
-		Health(writer, request)
+	if urlReturns200(r.Context(), url) {
+		Health(w, r)
 		return
 	}
-	Error(writer, request)
+	Error(w, r)
 }
 
-func startJobBatch(writer http.ResponseWriter, request *http.Request) {
-	if requestIsAuthorized(request) {
+func startJobBatch(w http.ResponseWriter, r *http.Request) {
+	logger := hlog.FromRequest(r)
+	if requestIsAuthorized(r) {
 		url := fmt.Sprintf("http://%s:%d%s", JobSchedulerFQDN, getJobSchedulerPort(), BatchesPath)
-		println(fmt.Sprintf("Sending request to %s", url))
+		logger.Debug().Msgf("Sending request to %s", url)
 		jsonStr := []byte(`{  "jobScheduleDescriptions": [    {      "timeLimitSeconds": 1    }  ]}`)
-
 		response, err := http.Post(url, "application/json", bytes.NewBuffer(jsonStr))
 		if err != nil {
-			println(err)
-			Error(writer, request)
+			logger.Error().Err(err).Msgf("Failed to send request to %s", url)
+			Error(w, r)
 			return
 		}
 		defer response.Body.Close()
 		if response.StatusCode == 200 {
-			RelayResponse(writer, request, response)
+			RelayResponse(w, r, response)
 			return
 		}
-		Error(writer, request)
+		Error(w, r)
 	} else {
-		println("Received unauthorized request")
-		Unauthorized(writer, request)
+		logger.Error().Msg("Received unauthorized request")
+		Unauthorized(w, r)
 	}
 }
 
-func testRadixSite(writer http.ResponseWriter, request *http.Request) {
-	url := getGolangCanaryFQDN()
-	if urlReturns200(url) {
-		Health(writer, request)
+func testRadixSite(w http.ResponseWriter, r *http.Request) {
+	url := getGolangCanaryFQDN(r.Context())
+	if urlReturns200(r.Context(), url) {
+		Health(w, r)
 		return
 	}
-	Error(writer, request)
+	Error(w, r)
 }
 
 // testExternalWebsite iterates over multiple high profile domains. If any of the domains responds with status code 200, the test passes.
-func testExternalWebsite(writer http.ResponseWriter, request *http.Request) {
-	client := http.Client{
-		Timeout: 10 * time.Second,
-	}
-	for _, d := range getDomains() {
-		response, err := client.Get(fmt.Sprintf("https://%s", d))
-		if err != nil {
-			continue
-		}
-		defer response.Body.Close()
-		if response.StatusCode == 200 {
-			Health(writer, request)
+func testExternalWebsite(w http.ResponseWriter, r *http.Request) {
+	for _, domain := range getDomains() {
+		url := fmt.Sprintf("https://%s", domain)
+		if urlReturns200(r.Context(), url) {
+			Health(w, r)
 			return
 		}
 	}
-	Error(writer, request)
+	Error(w, r)
 }
 
 // Index handler returns a simple front page
@@ -227,6 +269,8 @@ func Index(w http.ResponseWriter, r *http.Request) {
 
 // Health handler returns a simple status code indicating system health
 func Health(w http.ResponseWriter, r *http.Request) {
+	logger := hlog.FromRequest(r)
+
 	// Increase request count
 	requestCount++
 
@@ -244,8 +288,7 @@ func Health(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "%s", errorJSON)
 
-		// Print error to server standard error
-		fmt.Fprintf(os.Stderr, "Could not encode JSON: %s\n", err)
+		logger.Error().Err(err).Msg("Unable to encode JSON")
 
 		errorCount++
 		return
@@ -312,47 +355,34 @@ func Metrics(w http.ResponseWriter, r *http.Request) {
 
 // Error handler returns an error
 func Error(w http.ResponseWriter, r *http.Request) {
+	logger := hlog.FromRequest(r)
 	requestCount++
-
 	err := errors.New("can't fulfil request")
-
-	if err != nil {
-		errorJSON, _ := json.Marshal(map[string]interface{}{"Error": fmt.Sprintf("%s", err)})
-
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "%s", errorJSON)
-
-		fmt.Fprintf(os.Stderr, "Server error: %s\n", err)
-
-		errorCount++
-		return
-	}
+	errorJSON, _ := json.Marshal(map[string]interface{}{"Error": fmt.Sprintf("%s", err)})
+	w.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprintf(w, "%s", errorJSON)
+	logger.Error().Err(err).Msg("Server error")
+	errorCount++
 }
 
 // Unauthorized handler returns an error
 func Unauthorized(w http.ResponseWriter, r *http.Request) {
+	logger := hlog.FromRequest(r)
 	requestCount++
-
 	err := errors.New("Unauthorized request")
-
-	if err != nil {
-		errorJSON, _ := json.Marshal(map[string]interface{}{"Error": fmt.Sprintf("%s", err)})
-
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprintf(w, "%s", errorJSON)
-
-		fmt.Fprintf(os.Stderr, "Server error: %s\n", err)
-
-		errorCount++
-		return
-	}
+	errorJSON, _ := json.Marshal(map[string]interface{}{"Error": fmt.Sprintf("%s", err)})
+	w.WriteHeader(http.StatusUnauthorized)
+	fmt.Fprintf(w, "%s", errorJSON)
+	logger.Error().Err(err).Msg("Server error")
+	errorCount++
 }
 
 // Echo handler returns the incomming request with headers
 func Echo(w http.ResponseWriter, r *http.Request) {
-	requestCount++
+	logger := hlog.FromRequest(r)
+	logger.Debug().Msgf("%+v", r)
 
-	fmt.Printf("%+v", r)
+	requestCount++
 
 	request := map[string]interface{}{
 		"headers":    r.Header,
@@ -368,7 +398,7 @@ func Echo(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorJSON, _ := json.Marshal(map[string]interface{}{"Error": err})
 
-		fmt.Fprintf(os.Stderr, "Could not encode request JSON: %v\n", err)
+		logger.Error().Err(err).Msg("Unable to encode request JSON")
 
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "%s", errorJSON)
