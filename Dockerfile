@@ -1,27 +1,23 @@
-# Application build stage
-FROM golang:1.21-alpine3.18 as build
-
-ENV GOPATH /go
-
-COPY . /go/src/github.com/equinor/radix-networkpolicy-canary/
+FROM golang:1.21-alpine3.19 as builder
 
 WORKDIR /go/src/github.com/equinor/radix-networkpolicy-canary/
 
-RUN apk add --no-cache git
-RUN go get -t -v ./... # go get -d -v
-RUN go build -v cmd/main.go
+# get dependencies
+COPY go.mod go.sum ./
+RUN go mod download
 
-# Application run stage
-FROM alpine:3.18.5
+# copy api code
+COPY . .
 
-# Add bash if you need an interactive shell in the container, adds ~4MB to final image
-# RUN apk add --no-cache bash
+#Build
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-s -w" -a -installsuffix cgo -o /radix-networkpolicy-canary cmd/main.go
 
-RUN addgroup user && adduser -D -G user 2000
-USER 2000
+FROM scratch
 
-COPY --from=build /go/src/github.com/equinor/radix-networkpolicy-canary/main /app/radix-networkpolicy-canary
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /radix-networkpolicy-canary /app/radix-networkpolicy-canary
 
+ENV LISTENING_PORT "5000"
 EXPOSE 5000
-
-CMD ["/bin/sh", "-c", "/app/radix-networkpolicy-canary"]
+USER 2000
+ENTRYPOINT ["/app/radix-networkpolicy-canary"]
