@@ -33,12 +33,13 @@ spec:
         allowRadix: true
   jobs:
     - name: myjob
+      readOnlyFileSystem: true
       src: ./jobsrc
       schedulerPort: 9000
       timeLimitSeconds: 1
-      runAsNonRoot: true
   components:
     - name: redis
+      readOnlyFileSystem: true
       src: ./redis
       secrets:
         - REDIS_PASSWORD
@@ -53,6 +54,7 @@ spec:
         - environment: allowradix
           replicas: 0
     - name: web
+      readOnlyFileSystem: true
       src: "."
       secrets:
         - NETWORKPOLICY_CANARY_PASSWORD
