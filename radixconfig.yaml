@@ -32,6 +32,7 @@ spec:
         allowRadix: true
   jobs:
     - name: myjob
+      readOnlyFileSystem: true
       src: ./jobsrc
       schedulerPort: 9000
       timeLimitSeconds: 1
