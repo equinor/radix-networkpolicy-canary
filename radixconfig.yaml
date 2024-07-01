@@ -9,7 +9,6 @@ spec:
     - name: egressrulestopublicdns
       build:
         from: main
-        useBuildKit: true
       egress:
         allowRadix: false
         rules:
