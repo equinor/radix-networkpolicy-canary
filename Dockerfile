@@ -1,23 +1,20 @@
-FROM golang:1.21-alpine3.19 as builder
-
-WORKDIR /go/src/github.com/equinor/radix-networkpolicy-canary/
-
-# get dependencies
+# Build stage
+FROM docker.io/golang:1.22-alpine3.20 as builder
+ENV CGO_ENABLED=0 \
+    GOOS=linux
+WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
-
-# copy api code
 COPY . .
-
-#Build
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-s -w" -a -installsuffix cgo -o /radix-networkpolicy-canary cmd/main.go
+RUN go build -ldflags "-s -w" -o /build/radix-networkpolicy-canary cmd/main.go
 
 FROM scratch
 
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /radix-networkpolicy-canary /app/radix-networkpolicy-canary
-
+# Final stage, ref https://github.com/GoogleContainerTools/distroless/blob/main/base/README.md for distroless
+FROM gcr.io/distroless/static
 ENV LISTENING_PORT "5000"
+WORKDIR /app
+COPY --from=builder /build/radix-networkpolicy-canary .
 EXPOSE 5000
 USER 2000
 ENTRYPOINT ["/app/radix-networkpolicy-canary"]
