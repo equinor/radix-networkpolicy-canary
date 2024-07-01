@@ -62,13 +62,23 @@ spec:
         requests:
           cpu: 20m
           memory: 20M
+      horizontalScaling:
+        maxReplicas: 1
+        minReplicas: 0
+        triggers:
+          - name: cron
+            cron:
+              timezone: Europe/Oslo
+              start: 0 7 * * 1-5 # 07:00 Monday - Friday
+              end: 0 18 * * 1-5 # 17:00 Monday - Friday
+              desiredReplicas: 1
       environmentConfig:
         - environment: oauthdenyall
           replicas: 1
         - environment: egressrulestopublicdns
-          replicas: 0
+          enabled: false
         - environment: allowradix
-          replicas: 0
+          enabled: false
     - name: web
       readOnlyFileSystem: true
       src: "."
@@ -93,6 +103,16 @@ spec:
         limits:
           cpu: "10m"
           memory: "20M"
+      horizontalScaling:
+        maxReplicas: 1
+        minReplicas: 0
+        triggers:
+          - name: cron
+            cron:
+              timezone: Europe/Oslo
+              start: 0 7 * * 1-5 # 07:00 Monday - Friday
+              end: 0 18 * * 1-5 # 17:00 Monday - Friday
+              desiredReplicas: 1
       environmentConfig:
         - environment: oauthdenyall
           authentication:
