@@ -3,6 +3,8 @@ kind: RadixApplication
 metadata:
   name: radix-networkpolicy-canary
 spec:
+  build:
+    useBuildKit: true
   environments:
     - name: egressrulestopublicdns
       build:
@@ -37,15 +39,29 @@ spec:
       src: ./jobsrc
       schedulerPort: 9000
       timeLimitSeconds: 1
+      runtime:
+        architecture: arm64
+      resources:
+        requests:
+          cpu: "10m"
+          memory: "10M"
+        limits:
+          cpu: "10m"
+          memory: "10M"
   components:
     - name: redis
-      readOnlyFileSystem: true
       src: ./redis
       secrets:
         - REDIS_PASSWORD
       ports:
         - name: redis
           port: 6379
+      runtime:
+        architecture: arm64
+      resources:
+        requests:
+          cpu: 20m
+          memory: 20M
       environmentConfig:
         - environment: oauthdenyall
           replicas: 1
@@ -68,13 +84,15 @@ spec:
         LISTENING_PORT: "5000"
         LOG_LEVEL: "info"
         PRETTY_LOG: "false"
+      runtime:
+        architecture: arm64
       resources:
         requests:
+          cpu: "10m"
           memory: "20M"
-          cpu: "100m"
         limits:
-          memory: "200M"
-          cpu: "1000m"
+          cpu: "10m"
+          memory: "20M"
       environmentConfig:
         - environment: oauthdenyall
           authentication:
