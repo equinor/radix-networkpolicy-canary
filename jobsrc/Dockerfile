@@ -1,2 +1,3 @@
 FROM alpine:latest
-CMD sleep infinity
+USER 65534
+CMD ["sleep", "0"]
