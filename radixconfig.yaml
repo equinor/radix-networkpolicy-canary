@@ -46,7 +46,7 @@ spec:
           memory: "10M"
         limits:
           cpu: "10m"
-          memory: "10M"
+          memory: "400M"
   components:
     - name: redis
       src: ./redis
@@ -104,7 +104,7 @@ spec:
           memory: "20M"
         limits:
           cpu: "10m"
-          memory: "20M"
+          memory: "40M"
       horizontalScaling:
         maxReplicas: 1
         minReplicas: 0
