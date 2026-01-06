@@ -1,4 +1,5 @@
-FROM alpine:3.20.3
+FROM alpine:3.23
 RUN apk add redis --no-cache
 USER 1000
-CMD redis-server --port ${REDIS_SERVICE_PORT} --requirepass "${REDIS_PASSWORD}"
+ENTRYPOINT ["/bin/sh", "-c"]
+CMD ["redis-server --save \"\" --appendonly no --port ${REDIS_PORT:-6379} --requirepass \"${REDIS_PASSWORD}\""]

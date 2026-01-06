@@ -5,6 +5,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint
@@ -17,9 +20,9 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v8
         with:
-          version: v1.64.3
+          version: v2.7.2
 
   build:
     name: Build
@@ -36,7 +39,6 @@ jobs:
       - name: 'Fake TOKEN FOR RADIX CLI'
         run: echo "APP_SERVICE_ACCOUNT_TOKEN=dummy" >> $GITHUB_ENV
       - uses: actions/checkout@v4
+      - uses: equinor/radix-github-actions@v2
       - name: 'Validate'
-        uses: equinor/radix-github-actions@v1
-        with:
-          args: validate radix-config --config-file radixconfig.yaml
+        run: rx validate radix-config --config-file radixconfig.yaml
