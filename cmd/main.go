@@ -139,7 +139,7 @@ func urlReturns200(ctx context.Context, url string) bool {
 		logger.Error().Err(err).Msg("Failed to send request")
 		return false
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	return response.StatusCode == 200
 }
 
@@ -224,7 +224,7 @@ func startJobBatch(w http.ResponseWriter, r *http.Request) {
 			Error(w, r)
 			return
 		}
-		defer response.Body.Close()
+		defer func() { _ = response.Body.Close() }()
 		if response.StatusCode == 200 {
 			RelayResponse(w, r, response)
 			return
@@ -262,7 +262,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	// Increase request count
 	requestCount++
 
-	fmt.Fprintf(w, "<h1>Radix Canary App v %s</h1>", Version)
+	_, _ = fmt.Fprintf(w, "<h1>Radix Canary App v %s</h1>", Version)
 }
 
 // Health handler returns a simple status code indicating system health
@@ -284,7 +284,7 @@ func Health(w http.ResponseWriter, r *http.Request) {
 
 		// Return error and HTTP status code to client
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "%s", errorJSON)
+		_, _ = fmt.Fprintf(w, "%s", errorJSON)
 
 		logger.Error().Err(err).Msg("Unable to encode JSON")
 
@@ -293,7 +293,7 @@ func Health(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Write JSON to client
-	fmt.Fprintf(w, "%s", healthJSON)
+	_, _ = fmt.Fprintf(w, "%s", healthJSON)
 }
 
 func requestIsAuthorized(request *http.Request) bool {
@@ -309,12 +309,12 @@ func requestIsAuthorized(request *http.Request) bool {
 func RelayResponse(w http.ResponseWriter, r *http.Request, res *http.Response) {
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Could not read response: %s\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "Could not read response: %s\n", err)
 
 		errorCount++
 		return
 	}
-	fmt.Fprintf(w, "%s", body)
+	_, _ = fmt.Fprintf(w, "%s", body)
 	w.WriteHeader(res.StatusCode)
 }
 
@@ -346,7 +346,7 @@ func Metrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for metric, value := range appMetrics {
-		fmt.Fprintf(w, "%s{%s} %v\n", metric, labelsStr, value)
+		_, _ = fmt.Fprintf(w, "%s{%s} %v\n", metric, labelsStr, value)
 	}
 
 }
@@ -358,7 +358,7 @@ func Error(w http.ResponseWriter, r *http.Request) {
 	err := errors.New("can't fulfil request")
 	errorJSON, _ := json.Marshal(map[string]interface{}{"Error": fmt.Sprintf("%s", err)})
 	w.WriteHeader(http.StatusInternalServerError)
-	fmt.Fprintf(w, "%s", errorJSON)
+	_, _ = fmt.Fprintf(w, "%s", errorJSON)
 	logger.Error().Err(err).Msg("Server error")
 	errorCount++
 }
@@ -370,7 +370,7 @@ func Unauthorized(w http.ResponseWriter, r *http.Request) {
 	err := errors.New("Unauthorized request")
 	errorJSON, _ := json.Marshal(map[string]interface{}{"Error": fmt.Sprintf("%s", err)})
 	w.WriteHeader(http.StatusUnauthorized)
-	fmt.Fprintf(w, "%s", errorJSON)
+	_, _ = fmt.Fprintf(w, "%s", errorJSON)
 	logger.Error().Err(err).Msg("Server error")
 	errorCount++
 }
@@ -399,12 +399,12 @@ func Echo(w http.ResponseWriter, r *http.Request) {
 		logger.Error().Err(err).Msg("Unable to encode request JSON")
 
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "%s", errorJSON)
+		_, _ = fmt.Fprintf(w, "%s", errorJSON)
 
 		errorCount++
 		return
 	}
 
 	// Write JSON to client
-	fmt.Fprintf(w, "%s", requestJSON)
+	_, _ = fmt.Fprintf(w, "%s", requestJSON)
 }
