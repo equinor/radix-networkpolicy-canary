@@ -2,6 +2,8 @@ apiVersion: radix.equinor.com/v1
 kind: RadixApplication
 metadata:
   name: radix-networkpolicy-canary
+  annotations:
+    radix.equinor.com/preview-oauth2-proxy-mode: "*"
 spec:
   build:
     useBuildKit: true
