@@ -1,6 +1,6 @@
 module github.com/equinor/radix-canary-golang
 
-go 1.25.5
+go 1.25.7
 
 require github.com/rs/zerolog v1.34.0
 
