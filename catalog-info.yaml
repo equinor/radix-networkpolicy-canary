@@ -1,0 +1,13 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: radix-networkpolicy-canary
+  title: Radix Networkpolicy Canary
+  description: "Automated test for network policy"
+  annotations:
+    github.com/project-slug: equinor/radix-networkpolicy-canary
+spec:
+  type: service
+  lifecycle: production
+  owner: team-radix
+  system: system:default/Radix
