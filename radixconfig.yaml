@@ -5,8 +5,6 @@ metadata:
   annotations:
     radix.equinor.com/preview-oauth2-proxy-mode: "*"
 spec:
-  build:
-    useBuildKit: true
   environments:
     - name: egressrulestopublicdns
       build:
@@ -45,44 +43,11 @@ spec:
       resources:
         requests:
           cpu: "10m"
-          memory: "10M"
+          memory: "20M"
         limits:
           cpu: "10m"
           memory: "400M"
   components:
-    - name: redis
-      src: ./redis
-      secrets:
-        - REDIS_PASSWORD
-      ports:
-        - name: redis
-          port: 6379
-      runtime:
-        architecture: arm64
-      resources:
-        limits:
-          cpu: 20m
-          memory: 20M
-        requests:
-          cpu: 20m
-          memory: 20M
-      horizontalScaling:
-        maxReplicas: 1
-        minReplicas: 0
-        triggers:
-          - name: cron
-            cron:
-              timezone: Europe/Oslo
-              start: 0 7 * * 1-5 # 07:00 Monday - Friday
-              end: 0 18 * * 1-5 # 17:00 Monday - Friday
-              desiredReplicas: 1
-      environmentConfig:
-        - environment: oauthdenyall
-          replicas: 1
-        - environment: egressrulestopublicdns
-          enabled: false
-        - environment: allowradix
-          enabled: false
     - name: web
       readOnlyFileSystem: true
       src: "."
@@ -125,6 +90,4 @@ spec:
               scope: openid profile email offline_access
               setXAuthRequestHeaders: true
               setAuthorizationHeader: true
-              sessionStoreType: redis
-              redisStore:
-                connectionUrl: redis://redis:6379
+              sessionStoreType: systemManaged
