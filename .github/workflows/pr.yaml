@@ -22,7 +22,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          version: v2.12.2
+          version: v2.15.0
 
   build:
     name: Build
@@ -39,6 +39,6 @@ jobs:
       - name: 'Fake TOKEN FOR RADIX CLI'
         run: echo "APP_SERVICE_ACCOUNT_TOKEN=dummy" >> $GITHUB_ENV
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: equinor/radix-github-actions@b23674a56b82a1da783b507bc7f15e7ca7067dd8 # v2.0.2
+      - uses: equinor/radix-github-actions@cddafe425e85ab9bc44bde9303c1b3fcc15aafff # v2.0.4
       - name: 'Validate'
         run: rx validate radix-config --config-file radixconfig.yaml
